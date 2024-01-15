@@ -6,6 +6,4 @@ export default class NonEditableElement extends Plugin {
     static get requires() {
         return [NonEditableElementEditing];
     }
-
-    
 }

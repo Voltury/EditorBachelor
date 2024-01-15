@@ -5,11 +5,11 @@ import { Heading } from '@ckeditor/ckeditor5-heading';
 import { List } from '@ckeditor/ckeditor5-list';
 import { Paragraph } from '@ckeditor/ckeditor5-paragraph';
 
-import NonEditableElement from "./NonEditableElement/NonEditableElement";
+import InlineSuggestions from "./Inline/Inline";
 
 ClassicEditor
     .create( document.querySelector( '#editor' ), {
-        plugins: [ Essentials, Paragraph, Heading, List, Bold, Italic, NonEditableElement],
+        plugins: [ Essentials, Paragraph, Heading, List, Bold, Italic, InlineSuggestions],
         toolbar: [ 'heading', 'bold', 'italic', 'numberedList', 'bulletedList' ]
     } )
     .then( editor => {

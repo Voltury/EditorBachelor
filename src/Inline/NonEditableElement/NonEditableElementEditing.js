@@ -12,21 +12,10 @@ export default class NonEditableElementEditing extends Plugin {
     init() {
         console.log('NonEditableElementEditing#init() got called');
 
-        this.suggestion = null;
-        this.currentlyWriting = false;
-
         this._defineSchema();
         this._defineConverters();
 
         this.editor.commands.add('NonEditableElement', new NonEditableElementCommand(this.editor));
-
-        this.editor.model.document.on('change:data', () => {
-            this._insertNonEditableElement();
-        });
-
-        this.editor.model.document.selection.on('change:range', () => {
-            this._removeExistingSuggestion();
-        });
     }
 
     _defineSchema() {
@@ -89,55 +78,5 @@ export default class NonEditableElementEditing extends Plugin {
 
             return NonEditableElementView;
         }
-    }
-
-    _insertNonEditableElement() {
-        //-------------------------------------------------------------------------
-        // Checking if at last position
-        const selection = this.editor.model.document.selection;
-        const root = this.editor.model.document.getRoot();
-
-        // Check if the selection is collapsed (i.e., it is a caret, not a range).
-        if (!selection.isCollapsed) {
-            return;
-        }
-
-        const lastBlock = Array.from(root.getChildren()).pop();
-        const lastPositionInLastBlock = this.editor.model.createPositionAt(lastBlock, 'end');
-
-        // Check if the selection is at the end of the last block.
-        if (!selection.getFirstPosition().isEqual(lastPositionInLastBlock)) {
-            return;
-        }
-        //-------------------------------------------------------------------------
-
-        // Insert the non-editable element at the end of the root.
-        this.editor.model.change(writer => {
-            this.currentlyWriting = true;
-            // If there's an existing suggestion, remove it.
-            if (this.suggestion) {
-                writer.remove(writer.createRangeOn(this.suggestion));
-            }
-
-            // Create a new suggestion and insert it.
-            this.suggestion = writer.createElement('NonEditableElement', { suggestion: 'suggestion' });
-            writer.insert(this.suggestion, lastPositionInLastBlock, 1);
-
-            // Move the cursor before the inserted element.
-            writer.setSelection(this.suggestion, 'before');
-
-            this.currentlyWriting = false;
-        });
-    }
-
-    _removeExistingSuggestion() {
-        if(this.currentlyWriting) return;
-        this.editor.model.change(writer => {
-            // If there's an existing suggestion, remove it.
-            if (this.suggestion) {
-                writer.remove(writer.createRangeOn(this.suggestion));
-                this.suggestion = null;
-            }
-        });
     }
 }
