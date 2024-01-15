@@ -5,7 +5,7 @@ import { Heading } from '@ckeditor/ckeditor5-heading';
 import { List } from '@ckeditor/ckeditor5-list';
 import { Paragraph } from '@ckeditor/ckeditor5-paragraph';
 
-import InlineSuggestions from "./Inline/Inline";
+import InlineSuggestions from "./InlineSuggestions/Inline";
 
 ClassicEditor
     .create( document.querySelector( '#editor' ), {

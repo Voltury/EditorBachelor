@@ -1,10 +1,9 @@
 import {Plugin} from '@ckeditor/ckeditor5-core';
-import {toWidget, Widget} from '@ckeditor/ckeditor5-widget';
+import {toWidget, Widget} from "@ckeditor/ckeditor5-widget";
 
-import NonEditableElementCommand from './NonEditableElementCommand';
 import './theme/NonEditableElement.css';
 
-export default class NonEditableElementEditing extends Plugin {
+export default class NonEditableElement extends Plugin {
     static get requires() {
         return [Widget];
     }
@@ -14,8 +13,6 @@ export default class NonEditableElementEditing extends Plugin {
 
         this._defineSchema();
         this._defineConverters();
-
-        this.editor.commands.add('NonEditableElement', new NonEditableElementCommand(this.editor));
     }
 
     _defineSchema() {
