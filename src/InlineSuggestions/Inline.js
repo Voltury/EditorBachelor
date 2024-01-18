@@ -1,23 +1,29 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
+
 import NonEditableElement from "./NonEditableElement/NonEditableElement";
 
-export default class InlineSuggestions extends Plugin {
+export default class InlineSuggestion extends Plugin {
     static get requires() {
         return [NonEditableElement];
     }
 
-    init() {
-        console.log('inline plugin got called');
+    static get pluginName() {
+        return 'InlineSuggestion';
+    }
 
+    init() {
+        console.log('InlineSuggestion#init() got called');
+
+        this.isEnabled = false;
         this.suggestion = null;
         this.currentlyWriting = false;
 
         this.editor.model.document.on('change:data', () => {
-            this._insertNonEditableElement();
+            if(this.isEnabled) this._insertNonEditableElement();
         });
 
         this.editor.model.document.selection.on('change:range', () => {
-            this._removeExistingSuggestion();
+            if(this.isEnabled) this._removeExistingSuggestion();
         });
     }
 
@@ -50,7 +56,7 @@ export default class InlineSuggestions extends Plugin {
             }
 
             // Create a new suggestion and insert it.
-            this.suggestion = writer.createElement('NonEditableElement', { suggestion: 'suggestion' });
+            this.suggestion = writer.createElement('NonEditableElement', {suggestion: 'suggestion'});
             writer.insert(this.suggestion, lastPositionInLastBlock, 1);
 
             // Move the cursor before the inserted element.
@@ -61,7 +67,7 @@ export default class InlineSuggestions extends Plugin {
     }
 
     _removeExistingSuggestion() {
-        if(this.currentlyWriting) return;
+        if (this.currentlyWriting) return;
         this.editor.model.change(writer => {
             // If there's an existing suggestion, remove it.
             if (this.suggestion) {
@@ -69,5 +75,14 @@ export default class InlineSuggestions extends Plugin {
                 this.suggestion = null;
             }
         });
+    }
+
+    enablePlugin(){
+        this.isEnabled = true;
+    }
+
+    disablePlugin(){
+        this.isEnabled = false;
+        this._removeExistingSuggestion()
     }
 }
