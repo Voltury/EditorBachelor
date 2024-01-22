@@ -1,5 +1,5 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
-import './theme/sidebar.css';
+import './theme/Sidebar.css';
 
 export default class SidebarSuggestion extends Plugin {
     constructor(editor) {
@@ -24,7 +24,7 @@ export default class SidebarSuggestion extends Plugin {
     }
 
     enablePlugin() {
-        if(this.isEnabled) return;
+        if (this.isEnabled) return;
 
         let currentMargin = parseFloat(document.body.style.marginRight);
         if (isNaN(currentMargin)) {
@@ -37,7 +37,7 @@ export default class SidebarSuggestion extends Plugin {
     }
 
     disablePlugin() {
-        if(!this.isEnabled) return;
+        if (!this.isEnabled) return;
 
         let currentMargin = parseFloat(document.body.style.marginRight);
         if (isNaN(currentMargin)) {

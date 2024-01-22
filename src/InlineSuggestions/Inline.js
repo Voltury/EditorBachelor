@@ -19,11 +19,11 @@ export default class InlineSuggestion extends Plugin {
         this.currentlyWriting = false;
 
         this.editor.model.document.on('change:data', () => {
-            if(this.isEnabled) this._insertNonEditableElement();
+            if (this.isEnabled) this._insertNonEditableElement();
         });
 
         this.editor.model.document.selection.on('change:range', () => {
-            if(this.isEnabled) this._removeExistingSuggestion();
+            if (this.isEnabled) this._removeExistingSuggestion();
         });
     }
 
@@ -77,11 +77,11 @@ export default class InlineSuggestion extends Plugin {
         });
     }
 
-    enablePlugin(){
+    enablePlugin() {
         this.isEnabled = true;
     }
 
-    disablePlugin(){
+    disablePlugin() {
         this.isEnabled = false;
         this._removeExistingSuggestion()
     }
