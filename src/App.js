@@ -5,9 +5,8 @@ import {Heading} from '@ckeditor/ckeditor5-heading';
 import {List} from '@ckeditor/ckeditor5-list';
 import {Paragraph} from '@ckeditor/ckeditor5-paragraph';
 
+import RemoteConnection from "./RemoteConnection/RemoteConnection";
 import PluginManager from "./PluginManager/PluginManager";
-import InlineSuggestion from "./InlineSuggestions/Inline";
-import SidebarSuggestion from "./SidebarSuggestions/Sidebar";
 
 function beforeUnloadHandler(e) {
     e.preventDefault();
@@ -19,7 +18,13 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 ClassicEditor
     .create(document.querySelector('#editor'), {
-        plugins: [Essentials, Paragraph, Heading, List, Bold, Italic, InlineSuggestion, SidebarSuggestion, PluginManager],
+        plugins: [Essentials,
+            Paragraph,
+            Heading,
+            List,
+            Bold,
+            Italic,
+            RemoteConnection,],
         toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList', PluginManager.buttonName]
     })
     .then(editor => {

@@ -13,6 +13,10 @@ export default class SidebarSuggestion extends Plugin {
         return 'SidebarSuggestion';
     }
 
+    static get labelName(){
+        return "Sidebar"
+    }
+
     init() {
         console.log('SidebarPlugin#init() got called');
 

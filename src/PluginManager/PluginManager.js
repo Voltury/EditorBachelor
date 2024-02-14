@@ -1,20 +1,24 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import ButtonView from '@ckeditor/ckeditor5-ui/src/button/buttonview';
 import {createDropdown} from '@ckeditor/ckeditor5-ui/src/dropdown/utils';
-import SidebarSuggestion from "../SidebarSuggestions/Sidebar";
-import InlineSuggestion from "../InlineSuggestions/Inline";
+import SidebarSuggestion from "../Suggestions/SidebarSuggestions/Sidebar";
+import InlineSuggestion from "../Suggestions/InlineSuggestions/Inline";
+import DropdownSuggestion from "../Suggestions/DropdownSuggestions/Dropdown";
 
 export default class PluginManager extends Plugin {
     constructor(editor) {
         super(editor);
-        this.currentPlugin = 'none'; // Can be 'none', 'inline', or 'sidebar'
-        this.inlinePlugin = null;
-        this.sidebarPlugin = null;
+        this.currentPlugin = null;
         this.currentButton = null;
+        this.usingServer = true;
+        this.buttonMap = new Map();
+
+        this.manualSelection = null;
+        this.dropdpown = null;
     }
 
     static get requires() {
-        return [InlineSuggestion, SidebarSuggestion]
+        return [InlineSuggestion, SidebarSuggestion, DropdownSuggestion]
     }
 
     static get pluginName() {
@@ -29,81 +33,84 @@ export default class PluginManager extends Plugin {
         console.log('PluginManager#init() got called');
         this.inlinePlugin = this.editor.plugins.get(InlineSuggestion.pluginName);
         this.sidebarPlugin = this.editor.plugins.get(SidebarSuggestion.pluginName);
-
+        this.dropdownPlugin = this.editor.plugins.get(DropdownSuggestion.pluginName)
         this.editor.ui.componentFactory.add(PluginManager.buttonName, locale => {
-            const dropdown = createDropdown(locale);
+            this.dropdpown = createDropdown(locale);
+            const plugins = [this.inlinePlugin, this.sidebarPlugin, this.dropdownPlugin];
 
-            dropdown.buttonView.set({
-                label: this.currentPlugin.charAt(0).toUpperCase() + this.currentPlugin.slice(1),
+            this.dropdpown.buttonView.set({
+                label: "None",
                 withText: true,
                 isOn: false
             });
 
-            const noneButton = new ButtonView(locale);
-            noneButton.set({
-                label: 'None',
+            // creating the button to disable the suggestion plugins
+            this.buttonMap.set(null, new ButtonView(locale));
+            const button = this.buttonMap.get(null);
+            button.set({
+                label: "None",
                 withText: true
             });
-            noneButton.on('execute', () => {
-                this.switchPlugin('none', noneButton, dropdown);
+            button.isEnabled = false;
+            this.currentButton = button;
+            button.on('execute', () => {
+                this.switchPluginInternal(null);
+            });
+            this.dropdpown.panelView.children.add(button);
+
+
+            plugins.forEach((plugin, index) => {
+                this.buttonMap.set(plugin.constructor.pluginName, new ButtonView(locale));
+                const button = this.buttonMap.get(plugin.constructor.pluginName);
+
+                button.set({
+                    label: plugin.constructor.labelName,
+                    withText: true
+                });
+
+                button.on('execute', () => {
+                    this.switchPluginInternal(plugin);
+                });
+                this.dropdpown.panelView.children.add(button);
             });
 
-            const inlineButton = new ButtonView(locale);
-            inlineButton.set({
-                label: 'Inline',
-                withText: true
-            });
-            inlineButton.on('execute', () => {
-                this.switchPlugin('inline', inlineButton, dropdown);
-            });
-
-            const sidebarButton = new ButtonView(locale);
-            sidebarButton.set({
-                label: 'Sidebar',
-                withText: true
-            });
-            sidebarButton.on('execute', () => {
-                this.switchPlugin('sidebar', sidebarButton, dropdown);
-            });
-
-            dropdown.panelView.children.add(noneButton);
-            dropdown.panelView.children.add(inlineButton);
-            dropdown.panelView.children.add(sidebarButton);
-
-            this.currentButton = noneButton;
-            noneButton.set({isEnabled: false});
-
-            return dropdown;
+            this.dropdpown.isEnabled = false;
+            return this.dropdpown;
         });
     }
 
-    switchPlugin(plugin, button, dropdown) {
-        if (this.currentButton) {
-            this.currentButton.set({isEnabled: true});
+    switchPluginInternal(plugin) {
+        this.dropdpown.isOpen = false;
+        this.currentButton.set({isEnabled: true})
+
+        // "this.currentPlugin" can never be "plugin" in this function
+        this.switchPlugin(plugin);
+    }
+
+    switchPlugin(plugin){
+        if(this.currentPlugin === plugin) return;
+
+        if (this.currentPlugin) this.currentPlugin.disablePlugin();
+
+        if (plugin) {
+            plugin.enablePlugin();
+            this.dropdpown.buttonView.set({label: plugin.constructor.labelName});
         }
-        switch (plugin) {
-            case 'none':
-                // Disable all plugins
-                this.inlinePlugin.disablePlugin();
-                this.sidebarPlugin.disablePlugin();
-                this.currentPlugin = 'none';
-                break;
-            case 'inline':
-                // Enable the inline plugin and disable the sidebar plugin
-                this.inlinePlugin.enablePlugin();
-                this.sidebarPlugin.disablePlugin();
-                this.currentPlugin = 'inline';
-                break;
-            case 'sidebar':
-                // Enable the sidebar plugin and disable the inline plugin
-                this.sidebarPlugin.enablePlugin();
-                this.inlinePlugin.disablePlugin();
-                this.currentPlugin = 'sidebar';
-                break;
+        else{
+            this.dropdpown.buttonView.set({label: "None"});
         }
-        dropdown.isOpen = false;
-        dropdown.buttonView.set({label: this.currentPlugin.charAt(0).toUpperCase() + this.currentPlugin.slice(1)});
+
+        const button = this.buttonMap.get(plugin ? plugin.constructor.pluginName : null);
         button.set({isEnabled: false});
         this.currentButton = button;
+        this.currentPlugin = plugin;
+    }
+
+    enableManualSelection(){
+        this.dropdpown.isEnabled = true;
+    }
+
+    disableManualSelection(){
+        this.dropdpown.isEnabled = false;
     }
 }
