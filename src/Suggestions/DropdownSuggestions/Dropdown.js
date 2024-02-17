@@ -12,22 +12,13 @@ export default class DropdownSuggestion extends Plugin {
         return 'DropdownSuggestion';
     }
 
-    static get labelName(){
-        return "Dropdown"
-    }
-
     init() {
         const editor = this.editor;
-        this.isEnabled = false;
         this.dropdownShow = false;
 
         // Trigger suggestions
-        this.editor.model.document.on('change:data', () => {
-            if (this.isEnabled) this._possibleSuggestion();
-        });
-        this.editor.model.document.selection.on('change:range', () => {
-            if (this.isEnabled) this._removeExistingSuggestion();
-        });
+        this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
+        this.editor.model.document.selection.on('change:range', this._removeExistingSuggestion.bind(this));
 
         editor.on('ready', () => {
             this.dropdownElement = new DropdownElement();
@@ -52,14 +43,5 @@ export default class DropdownSuggestion extends Plugin {
 
         this.dropdownElement.removeFromDocument();
         this.dropdownShow = false;
-    }
-
-    enablePlugin() {
-        this.isEnabled = true;
-    }
-
-    disablePlugin() {
-        this.isEnabled = false;
-        this._removeExistingSuggestion();
     }
 }

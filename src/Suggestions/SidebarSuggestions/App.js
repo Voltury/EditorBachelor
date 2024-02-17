@@ -5,8 +5,8 @@ import {Heading} from '@ckeditor/ckeditor5-heading';
 import {List} from '@ckeditor/ckeditor5-list';
 import {Paragraph} from '@ckeditor/ckeditor5-paragraph';
 
-import RemoteConnection from "./RemoteConnection/RemoteConnection";
-import PluginManager from "./PluginManager/PluginManager";
+import Manager from "../../Manager";
+import SidebarSuggestion from "./Sidebar";
 
 function beforeUnloadHandler(e) {
     e.preventDefault();
@@ -24,8 +24,9 @@ ClassicEditor
             List,
             Bold,
             Italic,
-            RemoteConnection,],
-        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList', PluginManager.buttonName]
+            Manager,
+            SidebarSuggestion],
+        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList']
     })
     .then(editor => {
         console.log('Editor was initialized', editor);

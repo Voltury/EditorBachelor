@@ -46,9 +46,8 @@ export default class RemoteConnection extends Plugin {
         socket.addEventListener('close', (event) => {
             let reason = event.reason || 'No reason provided by server';
             console.log('Connection closed with code ' + event.code + ' and reason: ' + reason);
-            this.pluginManager.enableManualSelection();
+            this.pluginManager.switchInternalManagement();
         });
-
     }
 
     handleMessage(message){

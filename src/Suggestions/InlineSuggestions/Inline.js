@@ -13,34 +13,14 @@ export default class InlineSuggestion extends Plugin {
         return 'InlineSuggestion';
     }
 
-    static get labelName(){
-        return "Inline"
-    }
-
     init() {
         console.log('InlineSuggestion#init() got called');
 
-        this.isEnabled = false;
         this.suggestion = null;
         this.currentlyWriting = false;
 
-        this.editor.model.document.on('change:data', () => {
-            if (this.isEnabled) this._possibleSuggestion();
-        });
-
-        this.editor.model.document.selection.on('change:range', () => {
-            if (this.isEnabled) this._removeExistingSuggestion();
-        });
-    }
-
-    enablePlugin() {
-        this.isEnabled = true;
-    }
-
-    disablePlugin() {
-        this.isEnabled = false;
-        this._removeExistingSuggestion()
-        TextSuggestion.clearTimer()
+        this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
+        this.editor.model.document.selection.on('change:range', this._removeExistingSuggestion.bind(this));
     }
 
     _possibleSuggestion(){

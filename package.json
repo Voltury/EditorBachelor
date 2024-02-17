@@ -4,7 +4,8 @@
   "description": "",
   "main": "webpack.config.js",
   "scripts": {
-    "build": "webpack"
+    "build": "webpack",
+    "start": "http-server -c-1 -p 63342 ./public"
   },
   "private": true,
   "dependencies": {
@@ -29,6 +30,7 @@
     "@ckeditor/ckeditor5-utils": "^40.2.0",
     "@ckeditor/ckeditor5-widget": "^40.2.0",
     "css-loader": "^5.2.7",
+    "http-server": "^14.1.1",
     "postcss-loader": "^4.3.0",
     "raw-loader": "^4.0.2",
     "style-loader": "^2.0.0"

@@ -4,10 +4,15 @@ const { styles } = require( '@ckeditor/ckeditor5-dev-utils' );
 
 module.exports = {
     mode: 'development',
-    entry: './src/App.js',
+    entry: {
+        baseline: './src/Suggestions/Baseline/App.js',
+        inline: './src/Suggestions/InlineSuggestions/App.js',
+        dropdown: './src/Suggestions/DropdownSuggestions/App.js',
+        sidebar: './src/Suggestions/SidebarSuggestions/App.js'
+    },
     output: {
         path: path.resolve( __dirname, 'public/dist' ),
-        filename: 'bundle.js'
+        filename: '[name].bundle.js'
     },
     module: {
         rules: [
