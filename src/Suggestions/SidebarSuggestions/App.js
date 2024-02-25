@@ -18,7 +18,8 @@ window.addEventListener('beforeunload', beforeUnloadHandler);
 
 ClassicEditor
     .create(document.querySelector('#editor'), {
-        plugins: [Essentials,
+        plugins: [
+            Essentials,
             Paragraph,
             Heading,
             List,

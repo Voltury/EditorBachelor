@@ -1,8 +1,4 @@
 export default class DropdownElement {
-    static get pluginName() {
-        return 'DropdownElement';
-    }
-
     constructor() {
         // Create the suggestion list.
         this.suggestionList = document.createElement('ul');
@@ -14,19 +10,10 @@ export default class DropdownElement {
         this.suggestionList.style.padding = '10px';
         this.suggestionList.style.listStyleType = 'none';
         this.suggestionList.style.width = '200px';
+    }
 
-        // Add some example suggestions.
-        const suggestions = ['Suggestion 1', 'Suggestion 2'];
-        for (const suggestion of suggestions) {
-            const listItem = document.createElement('li');
-            listItem.textContent = suggestion;
-            listItem.style.color = '#ffffff';
-            listItem.style.padding = '10px';
-            listItem.style.cursor = 'pointer';
-            listItem.onmouseover = function() { this.style.backgroundColor = '#575757'; }
-            listItem.onmouseout = function() { this.style.backgroundColor = '#2e2e2e'; }
-            this.suggestionList.appendChild(listItem);
-        }
+    static get pluginName() {
+        return 'DropdownElement';
     }
 
     // Method to add the suggestion list to the document's body.
@@ -40,5 +27,32 @@ export default class DropdownElement {
     // Method to remove the suggestion list from the document's body.
     removeFromDocument() {
         document.body.removeChild(this.suggestionList);
+    }
+
+    addSuggestion(suggestion) {
+        const listItem = document.createElement('li');
+        listItem.textContent = suggestion;
+        listItem.style.color = '#ffffff';
+        listItem.style.padding = '10px';
+        listItem.style.cursor = 'pointer';
+        listItem.onmouseover = function () {
+            this.style.backgroundColor = '#575757';
+        }
+        listItem.onmouseout = function () {
+            this.style.backgroundColor = '#2e2e2e';
+        }
+        this.suggestionList.appendChild(listItem);
+    }
+
+    addSuggestions(suggestions) {
+        for (const suggestion of suggestions) {
+            this.addSuggestion(suggestion);
+        }
+    }
+
+    clearSuggestions() {
+        while (this.suggestionList.firstChild) {
+            this.suggestionList.removeChild(this.suggestionList.lastChild);
+        }
     }
 }

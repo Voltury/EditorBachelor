@@ -1,6 +1,5 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 
-import PluginManager from "../PluginManager/PluginManager";
 import SidebarSuggestion from "../Suggestions/SidebarSuggestions/Sidebar";
 import InlineSuggestion from "../Suggestions/InlineSuggestions/Inline";
 import DropdownSuggestion from "../Suggestions/DropdownSuggestions/Dropdown";
@@ -32,7 +31,7 @@ export default class RemoteConnection extends Plugin {
         console.log('RemoteConnection#init() got called');
     }
 
-    handleServer(){
+    handleServer() {
         const socket = new WebSocket('ws://localhost:8080');
 
         socket.addEventListener('message', function (event) {
@@ -50,7 +49,7 @@ export default class RemoteConnection extends Plugin {
         });
     }
 
-    handleMessage(message){
+    handleMessage(message) {
         console.log('Message from server: ', event.data);
     }
 }

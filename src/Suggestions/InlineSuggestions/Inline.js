@@ -2,6 +2,7 @@ import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 
 import NonEditableElement from "./NonEditableElement/NonEditableElement";
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
+import Utils from "../utils";
 
 
 export default class InlineSuggestion extends Plugin {
@@ -23,51 +24,16 @@ export default class InlineSuggestion extends Plugin {
         this.editor.model.document.selection.on('change:range', this._removeExistingSuggestion.bind(this));
     }
 
-    _possibleSuggestion(){
-        TextSuggestion.generateSuggestion(
-            this._getTextBeforeCursor(100),
+    _possibleSuggestion() {
+        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor, 100),
+            1,
             10,
-            this,
-            this._checkSuggestionAppropriate,
-            this._insertNonEditableElement)
+            Utils._checkSuggestionAppropriate.bind(null, this.editor),
+            this._insertNonEditableElement.bind(this))
     }
 
-    _getTextBeforeCursor(x) {
-        const model = this.editor.model;
-        const selection = model.document.selection;
-        const writer = model.change(writer => writer);
-
-        // Get the position of the cursor
-        const position = selection.getFirstPosition();
-
-        // Get the range from the start of the document to the cursor
-        const range = writer.createRange(model.createPositionAt(model.document.getRoot(), 0), position);
-
-        // Get the text in the range
-        const text = Array.from(range.getWalker()).map(item => item.item.data).join('');
-
-        // Return the last x characters
-        return text.slice(-x);
-    }
-
-    _checkSuggestionAppropriate(){
-        // Checking if at last position
-        const selection = this.editor.model.document.selection;
-        const root = this.editor.model.document.getRoot();
-
-        // Check if the selection is collapsed (i.e., it is a caret, not a range).
-        if (!selection.isCollapsed) {
-            return false;
-        }
-
-        const lastBlock = Array.from(root.getChildren()).pop();
-        const lastPositionInLastBlock = this.editor.model.createPositionAt(lastBlock, 'end');
-
-        // Check if the selection is at the end of the last block.
-        return selection.getFirstPosition().isEqual(lastPositionInLastBlock);
-    }
-
-    _insertNonEditableElement(text) {
+    _insertNonEditableElement(input) {
+        const text = input[0];
         const root = this.editor.model.document.getRoot();
         const lastBlock = Array.from(root.getChildren()).pop();
         const lastPositionInLastBlock = this.editor.model.createPositionAt(lastBlock, 'end');

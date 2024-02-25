@@ -5,13 +5,14 @@
   "main": "webpack.config.js",
   "scripts": {
     "build": "webpack",
-    "start": "http-server -c-1 -p 63342 ./public"
+    "start": "http-server -c-1 -p 55555 ./public"
   },
   "private": true,
   "dependencies": {
     "@ckeditor/ckeditor5-alignment": "^41.0.0",
     "@ckeditor/ckeditor5-basic-styles": "^40.2.0",
     "@ckeditor/ckeditor5-block-quote": "^41.0.0",
+    "@ckeditor/ckeditor5-comments": "^41.1.0",
     "@ckeditor/ckeditor5-core": "^40.2.0",
     "@ckeditor/ckeditor5-dev-utils": "^39.5.0",
     "@ckeditor/ckeditor5-editor-classic": "^40.2.0",
