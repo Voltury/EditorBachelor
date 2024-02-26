@@ -5,11 +5,12 @@ export default class DropdownElement {
         this.suggestionList.style.position = 'absolute';
         this.suggestionList.style.top = '50%';
         this.suggestionList.style.left = '50%';
-        this.suggestionList.style.backgroundColor = '#2e2e2e';
+        this.suggestionList.style.backgroundColor = '#ffffff';
         this.suggestionList.style.borderRadius = '5px';
         this.suggestionList.style.padding = '10px';
         this.suggestionList.style.listStyleType = 'none';
         this.suggestionList.style.width = '200px';
+        this.suggestionList.style.border = '1px solid #ccc';
     }
 
     static get pluginName() {
@@ -29,24 +30,26 @@ export default class DropdownElement {
         document.body.removeChild(this.suggestionList);
     }
 
-    addSuggestion(suggestion) {
+    addSuggestion(suggestion, buttonCallback) {
         const listItem = document.createElement('li');
         listItem.textContent = suggestion;
-        listItem.style.color = '#ffffff';
         listItem.style.padding = '10px';
         listItem.style.cursor = 'pointer';
+        listItem.style.transitionDuration = '0.4s'; // Transition effect
         listItem.onmouseover = function () {
-            this.style.backgroundColor = '#575757';
-        }
+            listItem.style.backgroundColor = '#f2f2f2'
+        }; // Slightly gray when mouse hovers over
         listItem.onmouseout = function () {
-            this.style.backgroundColor = '#2e2e2e';
-        }
+            listItem.style.backgroundColor = 'white'
+        }; // Return to white when mouse leaves
+        listItem.onclick = () => buttonCallback(suggestion);
+
         this.suggestionList.appendChild(listItem);
     }
 
-    addSuggestions(suggestions) {
+    addSuggestions(suggestions, buttonCallback) {
         for (const suggestion of suggestions) {
-            this.addSuggestion(suggestion);
+            this.addSuggestion(suggestion, buttonCallback);
         }
     }
 

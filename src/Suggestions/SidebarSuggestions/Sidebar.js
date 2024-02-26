@@ -42,7 +42,7 @@ export default class SidebarSuggestion extends Plugin {
 
     _possibleSuggestion() {
         if(this.currentlyWriting) return;
-        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor, 500),
+        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor),
             4,
             20,
             Utils._checkSuggestionAppropriate.bind(null, this.editor),
@@ -102,5 +102,4 @@ export default class SidebarSuggestion extends Plugin {
         // Set focus back to the text field
         this.editor.editing.view.focus();
     }
-
 }

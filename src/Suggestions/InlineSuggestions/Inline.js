@@ -1,4 +1,5 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
+import {keyCodes} from "@ckeditor/ckeditor5-utils";
 
 import NonEditableElement from "./NonEditableElement/NonEditableElement";
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
@@ -22,10 +23,26 @@ export default class InlineSuggestion extends Plugin {
 
         this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
         this.editor.model.document.selection.on('change:range', this._removeExistingSuggestion.bind(this));
+        // Add a keydown event listener to the editor.
+        this.editor.editing.view.document.on('keydown', (evt, data) => {
+            // Check if the pressed key is 'Tab'.
+            if (data.keyCode === keyCodes.tab) {
+                // Check if there is a suggestion currently displayed.
+                if (this.suggestion) {
+                    // Prevent the default action.
+                    data.preventDefault();
+                    evt.stop();
+
+                    // Remove the suggestion and replace it with normal text.
+                    this._replaceSuggestion();
+                }
+            }
+        });
     }
 
     _possibleSuggestion() {
-        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor, 100),
+        if(this.currentlyWriting) return;
+        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor),
             1,
             10,
             Utils._checkSuggestionAppropriate.bind(null, this.editor),
@@ -67,5 +84,22 @@ export default class InlineSuggestion extends Plugin {
             writer.remove(writer.createRangeOn(this.suggestion));
             this.suggestion = null;
         });
+    }
+
+    _replaceSuggestion() {
+        const text = this.suggestion.getAttribute('suggestion');
+
+        this._removeExistingSuggestion();
+        this.currentlyWriting = true;
+
+        const selection = this.editor.model.document.selection;
+        const range = selection.getFirstPosition();
+        this.editor.model.change(writer => {
+            writer.insertText(text, range);
+            // Move the cursor to the end of the inserted text
+            const endPosition = range.getShiftedBy(text.length);
+            writer.setSelection(endPosition);
+        });
+        this.currentlyWriting = false;
     }
 }

@@ -16,7 +16,7 @@ export default class Utils {
         return selection.getFirstPosition().isEqual(lastPositionInLastBlock);
     }
 
-    static _getTextBeforeCursor(editor, x) {
+    static _getTextBeforeCursor(editor, x=1000) {
         const model = editor.model;
         const selection = model.document.selection;
         const writer = model.change(writer => writer);

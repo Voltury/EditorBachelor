@@ -16,6 +16,7 @@ export default class DropdownSuggestion extends Plugin {
     init() {
         const editor = this.editor;
         this.dropdownShow = false;
+        this.currentlyWriting = false;
 
         // Trigger suggestions
         this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
@@ -27,7 +28,8 @@ export default class DropdownSuggestion extends Plugin {
     }
 
     _possibleSuggestion() {
-        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor, 100),
+        if (this.currentlyWriting) return;
+        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor),
             3,
             10,
             Utils._checkSuggestionAppropriate.bind(null, this.editor),
@@ -43,7 +45,7 @@ export default class DropdownSuggestion extends Plugin {
         const rect = selection.getRangeAt(0).getBoundingClientRect();
 
         // Add the dropdown to the document at the position of the selection.
-        this.dropdownElement.addSuggestions(suggestions)
+        this.dropdownElement.addSuggestions(suggestions, this._addToText.bind(this));
         this.dropdownElement.addToDocument(rect.left, rect.bottom);
         this.dropdownShow = true;
     }
@@ -55,5 +57,20 @@ export default class DropdownSuggestion extends Plugin {
         this.dropdownElement.removeFromDocument();
         this.dropdownShow = false;
         this.dropdownElement.clearSuggestions()
+    }
+
+    _addToText(suggestion) {
+        this.currentlyWriting = true;
+        const selection = this.editor.model.document.selection;
+        const range = selection.getFirstPosition();
+        this.editor.model.change(writer => {
+            writer.insertText(suggestion, range);
+            // Move the cursor to the end of the inserted text
+            const endPosition = range.getShiftedBy(suggestion.length);
+            writer.setSelection(endPosition);
+        });
+        this.currentlyWriting = false;
+        // Set focus back to the text field
+        this.editor.editing.view.focus();
     }
 }
