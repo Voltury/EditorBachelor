@@ -82,7 +82,7 @@ export default class TextSuggestion {
             let results = [];
             for(let response of responses) {
                 if (!response.ok) {
-                    console.log("HTTP error " + response.status);
+                    console.warn("HTTP error " + response.status);
                     return;
                 }
 
@@ -93,11 +93,10 @@ export default class TextSuggestion {
             this.requestsOngoing = false;
             callback(results);
         } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('Fetch aborted');
-            } else {
-                throw error;
+            if (error.name !== 'AbortError') {
+                console.error("Error during fetch: " + error)
             }
+            this.requestsOngoing = false;
         }
     }
 }
