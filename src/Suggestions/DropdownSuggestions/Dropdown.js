@@ -49,6 +49,7 @@ export default class DropdownSuggestion extends Plugin {
     }
 
     _removeDropdown() {
+        TextSuggestion.clearTimer();
         if (!this.dropdownShow) return;
 
         this.dropdownElement.removeFromDocument();

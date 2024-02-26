@@ -58,6 +58,9 @@ export default class InlineSuggestion extends Plugin {
     }
 
     _removeExistingSuggestion() {
+        // Clear the timer and cancel ongoing requests
+        TextSuggestion.clearTimer();
+
         if (this.currentlyWriting || !this.suggestion) return;
         // If there's an existing suggestion, remove it.
         this.editor.model.change(writer => {
