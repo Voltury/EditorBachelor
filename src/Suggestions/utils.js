@@ -1,4 +1,8 @@
 export default class Utils {
+    static SuggestionsRemoved = 'suggestions_removed';
+    static SuggestionsDisplayed = 'suggestions_displayed';
+    static SuggestionInserted = 'suggestion_inserted';
+
     static _checkSuggestionAppropriate(editor) {
         // Checking if at last position
         const selection = editor.model.document.selection;
@@ -33,4 +37,23 @@ export default class Utils {
         // Return the last x characters
         return text.slice(-x);
     }
+
+    static _getTextAfterCursor(editor, x=1000) {
+        const model = editor.model;
+        const selection = model.document.selection;
+        const writer = model.change(writer => writer);
+
+        // Get the position of the cursor
+        const position = selection.getLastPosition();
+
+        // Get the range from the cursor to the end of the document
+        const range = writer.createRange(position, model.createPositionAt(model.document.getRoot(), 'end'));
+
+        // Get the text in the range
+        const text = Array.from(range.getWalker()).map(item => item.item.data).join('');
+
+        // Return the first x characters
+        return text.slice(0, x);
+    }
+
 }

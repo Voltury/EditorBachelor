@@ -8,14 +8,6 @@ import {Paragraph} from '@ckeditor/ckeditor5-paragraph';
 import Manager from "../../Manager";
 import SidebarSuggestion from "./Sidebar";
 
-function beforeUnloadHandler(e) {
-    e.preventDefault();
-    e.returnValue = '';
-}
-
-window.addEventListener('beforeunload', beforeUnloadHandler);
-
-
 ClassicEditor
     .create(document.querySelector('#editor'), {
         plugins: [

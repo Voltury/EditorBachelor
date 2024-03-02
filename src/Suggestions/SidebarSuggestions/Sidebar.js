@@ -80,12 +80,16 @@ export default class SidebarSuggestion extends Plugin {
             // Append each suggestion button to the sidebar element
             this.sidebarElement.appendChild(button);
         });
+        this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": suggestions});
     }
 
     _removeSuggestions() {
+        let suggestions = []
         while (this.sidebarElement.firstChild) {
+            suggestions.push(this.sidebarElement.firstChild.textContent);
             this.sidebarElement.removeChild(this.sidebarElement.firstChild);
         }
+        this.editor.fire(Utils.SuggestionsRemoved, {"suggestions": suggestions});
     }
 
     _addToText(suggestion) {
@@ -98,6 +102,13 @@ export default class SidebarSuggestion extends Plugin {
             const endPosition = range.getShiftedBy(suggestion.length);
             writer.setSelection(endPosition);
         });
+
+        let suggestions = [];
+        for(const child of this.sidebarElement.children) {
+            suggestions.push(child.textContent);
+        }
+        this.editor.fire(Utils.SuggestionInserted, {"selected": suggestion, "all": suggestions})
+
         this.currentlyWriting = false;
         // Set focus back to the text field
         this.editor.editing.view.focus();

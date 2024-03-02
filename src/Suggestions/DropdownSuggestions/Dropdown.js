@@ -48,6 +48,7 @@ export default class DropdownSuggestion extends Plugin {
         this.dropdownElement.addSuggestions(suggestions, this._addToText.bind(this));
         this.dropdownElement.addToDocument(rect.left, rect.bottom);
         this.dropdownShow = true;
+        this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": suggestions})
     }
 
     _removeDropdown() {
@@ -56,7 +57,15 @@ export default class DropdownSuggestion extends Plugin {
 
         this.dropdownElement.removeFromDocument();
         this.dropdownShow = false;
+
+        let suggestions = [];
+        for(const child of this.dropdownElement.suggestionList.children) {
+            suggestions.push(child.textContent);
+        }
+
         this.dropdownElement.clearSuggestions()
+
+        this.editor.fire(Utils.SuggestionsRemoved, {"suggestions": suggestions})
     }
 
     _addToText(suggestion) {
@@ -69,6 +78,13 @@ export default class DropdownSuggestion extends Plugin {
             const endPosition = range.getShiftedBy(suggestion.length);
             writer.setSelection(endPosition);
         });
+
+        let suggestions = [];
+        for(const child of this.dropdownElement.suggestionList.children) {
+            suggestions.push(child.textContent);
+        }
+        this.editor.fire(Utils.SuggestionInserted, {"selected": suggestion, "all": suggestions})
+
         this.currentlyWriting = false;
         // Set focus back to the text field
         this.editor.editing.view.focus();

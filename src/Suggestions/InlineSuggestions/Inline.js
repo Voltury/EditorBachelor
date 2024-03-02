@@ -70,6 +70,7 @@ export default class InlineSuggestion extends Plugin {
             // Move the cursor before the inserted element.
             writer.setSelection(this.suggestion, 'before');
 
+            this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": [text]})
             this.currentlyWriting = false;
         });
     }
@@ -82,6 +83,7 @@ export default class InlineSuggestion extends Plugin {
         // If there's an existing suggestion, remove it.
         this.editor.model.change(writer => {
             writer.remove(writer.createRangeOn(this.suggestion));
+            this.editor.fire(Utils.SuggestionsRemoved, {"suggestions": [this.suggestion.getAttribute('suggestion')]})
             this.suggestion = null;
         });
     }
@@ -100,6 +102,8 @@ export default class InlineSuggestion extends Plugin {
             const endPosition = range.getShiftedBy(text.length);
             writer.setSelection(endPosition);
         });
+        this.editor.fire(Utils.SuggestionInserted, {"selected": text, "all": [text]})
+
         this.currentlyWriting = false;
     }
 }

@@ -8,14 +8,6 @@ import {Paragraph} from '@ckeditor/ckeditor5-paragraph';
 import Manager from "../../Manager";
 import InlineSuggestion from "./Inline";
 
-function beforeUnloadHandler(e) {
-    e.preventDefault();
-    e.returnValue = '';
-}
-
-window.addEventListener('beforeunload', beforeUnloadHandler);
-
-
 ClassicEditor
     .create(document.querySelector('#editor'), {
         plugins: [Essentials,
