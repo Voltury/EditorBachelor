@@ -6,6 +6,7 @@ import {List} from '@ckeditor/ckeditor5-list';
 import {Paragraph} from '@ckeditor/ckeditor5-paragraph';
 
 import Manager from "../../Manager";
+import ModalPlugin from "../../Modal/Modal";
 
 ClassicEditor
     .create(document.querySelector('#editor'), {
@@ -15,8 +16,9 @@ ClassicEditor
             List,
             Bold,
             Italic,
-            Manager],
-        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList']
+            Manager,
+            ModalPlugin],
+        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList','modalButton']
     })
     .then(editor => {
         console.log('Editor was initialized', editor);

@@ -2,7 +2,7 @@ import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
 import DropdownElement from "./DropdownElement/DropdownElement";
-import Utils from "../utils";
+import Utils from "../../utils";
 
 export default class DropdownSuggestion extends Plugin {
     static get requires() {

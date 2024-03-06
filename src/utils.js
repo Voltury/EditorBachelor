@@ -2,6 +2,7 @@ export default class Utils {
     static SuggestionsRemoved = 'suggestions_removed';
     static SuggestionsDisplayed = 'suggestions_displayed';
     static SuggestionInserted = 'suggestion_inserted';
+    static TaskSelected = 'task_selected';
 
     static _checkSuggestionAppropriate(editor) {
         // Checking if at last position

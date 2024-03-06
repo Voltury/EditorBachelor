@@ -3,7 +3,7 @@ import {keyCodes} from "@ckeditor/ckeditor5-utils";
 
 import NonEditableElement from "./NonEditableElement/NonEditableElement";
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
-import Utils from "../utils";
+import Utils from "../../utils";
 
 
 export default class InlineSuggestion extends Plugin {

@@ -7,6 +7,7 @@ import {Paragraph} from '@ckeditor/ckeditor5-paragraph';
 
 import Manager from "../../Manager";
 import InlineSuggestion from "./Inline";
+import ModalPlugin from "../../Modal/Modal";
 
 ClassicEditor
     .create(document.querySelector('#editor'), {
@@ -17,8 +18,9 @@ ClassicEditor
             Bold,
             Italic,
             Manager,
-            InlineSuggestion],
-        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList']
+            InlineSuggestion,
+            ModalPlugin],
+        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList','modalButton']
     })
     .then(editor => {
         console.log('Editor was initialized', editor);

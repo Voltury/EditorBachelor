@@ -2,7 +2,7 @@ import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import './theme/Sidebar.css';
 
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
-import Utils from "../utils";
+import Utils from "../../utils";
 
 export default class SidebarSuggestion extends Plugin {
     static get requires() {
