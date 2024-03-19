@@ -1,10 +1,9 @@
 import asyncio
 import json
 import os
-
 import websockets
 
-# import EyeTracker
+import EyeTracker
 
 connection = None
 participant_id = None
@@ -63,7 +62,7 @@ def register_participant_id(participant):
 def register_condition_id(condition):
     global condition_id
     condition_id = condition
-    print(f"Registered participant id: {condition_id}")
+    print(f"Registered condition id: {condition_id}")
 
 
 async def start_recording():
@@ -90,7 +89,7 @@ async def get_tasks():
     if not participant_id or not condition_id:
         connection.send("error Please register participant and condition id first")
         return
-    path = f"../../data/{participant_id}/tasks.json"
+    path = f"./data/{participant_id}/tasks.json"
     exists = os.path.exists(path)
     if not exists:
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -112,8 +111,35 @@ async def save_tasks(tasks):
         await connection.send("error Please register participant and condition id first")
         return
 
-    with open(f"../../data/{participant_id}/tasks.json", "w") as file:
+    with open(f"./data/{participant_id}/tasks.json", "w") as file:
         json.dump(json.loads(tasks), file)
+
+
+async def get_document_data():
+    if not participant_id or not condition_id:
+        await connection.send("error Please register participant and condition id first")
+        return
+
+    path = f"./data/{participant_id}/{condition_id}/document.html"
+    exists = os.path.exists(path)
+    if not exists:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as file:
+            await connection.send("get_document_data ")
+    else:
+        with open(path, "r") as file:
+            await connection.send("get_document_data " + file.read())
+
+    print(f"Getting document data for participant id: {participant_id}")
+
+
+async def save_document_data(data):
+    if not participant_id or not condition_id:
+        await connection.send("error Please register participant and condition id first")
+        return
+
+    with open(f"./data/{participant_id}/{condition_id}/document.html", "w") as file:
+        file.write(data)
 
 
 def clear_local_storage():
@@ -136,6 +162,8 @@ async_functions = {
     "end_recording": end_recording,
     "get_tasks": get_tasks,
     "save_tasks": save_tasks,
+    "get_document_data": get_document_data,
+    "save_document_data": save_document_data
 }
 
 
@@ -172,13 +200,17 @@ async def handle_connection(websocket, path):
     finally:
         await connection.close()
         clear_local_storage()
+        EyeTracker.stop_recording()
         print(f"Disconnected from server")
+        print("-" * 40)
 
 
 start_server = websockets.serve(handle_connection, "localhost", 55556)
 
 print("serving at port", 55556)
 asyncio.get_event_loop().run_until_complete(start_server)
+print("-"*40)
+
 try:
     asyncio.get_event_loop().run_forever()
 except KeyboardInterrupt:
