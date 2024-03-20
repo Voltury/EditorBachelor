@@ -19,15 +19,24 @@ export default class InlineSuggestion extends Plugin {
         console.log('InlineSuggestion#init() got called');
 
         this.suggestion = null;
-        this.currentlyWriting = false;
 
         this.editor.model.document.on('change:data', () => {
+            const changes = this.editor.model.document.differ.getChanges();
+
+            if(this.suggestion){
+                if(changes.length === 1 && changes[0].name === 'NonEditableElement' && changes[0].type === 'insert') {
+                    return;
+                }
+                else if(changes.length === 1 && changes[0].name === 'NonEditableElement' && changes[0].type === 'remove'){
+                    return;
+                }
+                else{
+                    this._removeExistingSuggestion();
+                }
+            }
             this._possibleSuggestion.bind(this)();
         });
-        this.editor.model.document.selection.on('change:range', (info) => {
-            console.log(info);
-            this._removeExistingSuggestion.bind(this)();
-        });
+
         // Add a keydown event listener to the editor.
         this.editor.editing.view.document.on('keydown', (evt, data) => {
             // Check if the pressed key is 'Tab'.
@@ -46,25 +55,15 @@ export default class InlineSuggestion extends Plugin {
     }
 
     _possibleSuggestion() {
-        if(this.currentlyWriting) return;
         TextSuggestion.generateSuggestion(this.editor, Utils._getTextBeforeCursor(this.editor), 1, 10, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertNonEditableElement.bind(this))
     }
 
     _insertNonEditableElement(input) {
         const text = input[0];
-        const root = this.editor.model.document.getRoot();
-        const lastBlock = Array.from(root.getChildren()).pop();
-        //const lastPositionInLastBlock = this.editor.model.createPositionAt(lastBlock, 'end');
         const currentPosition = this.editor.model.document.selection.getFirstPosition();
 
         // Insert the non-editable element at the end of the root.
         this.editor.model.change(writer => {
-            this.currentlyWriting = true;
-            // If there's an existing suggestion, remove it.
-            if (this.suggestion) {
-                writer.remove(writer.createRangeOn(this.suggestion));
-            }
-
             // Create a new suggestion and insert it.
             this.suggestion = writer.createElement('NonEditableElement', {suggestion: text});
             //writer.insert(this.suggestion, lastPositionInLastBlock, 1);
@@ -74,7 +73,6 @@ export default class InlineSuggestion extends Plugin {
             writer.setSelection(this.suggestion, 'before');
 
             this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": [text]})
-            this.currentlyWriting = false;
         });
     }
 
@@ -82,18 +80,14 @@ export default class InlineSuggestion extends Plugin {
         // Clear the timer and cancel ongoing requests
         TextSuggestion.clearTimer();
 
-        if (this.currentlyWriting || !this.suggestion) return;
+        if (!this.suggestion) return;
 
-        this.currentlyWriting = true;
         // If there's an existing suggestion, remove it.
         this.editor.model.change(writer => {
             writer.remove(this.suggestion);
             this.editor.fire(Utils.SuggestionsRemoved, {"suggestions": [this.suggestion.getAttribute('suggestion')]})
             this.suggestion = null;
         });
-        this.currentlyWriting = false;
-
-        console.log("Removed suggestion")
     }
 
 
@@ -101,8 +95,6 @@ export default class InlineSuggestion extends Plugin {
         const text = this.suggestion.getAttribute('suggestion');
 
         this._removeExistingSuggestion();
-        this.currentlyWriting = true;
-
         const selection = this.editor.model.document.selection;
         const range = selection.getFirstPosition();
         this.editor.model.change(writer => {
@@ -112,7 +104,5 @@ export default class InlineSuggestion extends Plugin {
             writer.setSelection(endPosition);
         });
         this.editor.fire(Utils.SuggestionInserted, {"selected": text, "all": [text]})
-
-        this.currentlyWriting = false;
     }
 }
