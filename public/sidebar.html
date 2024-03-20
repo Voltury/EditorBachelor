@@ -6,8 +6,12 @@
     <script src="study-align-lib-bundle.js"></script>
 </head>
 <body>
-<div id="editor">
-    <p>This is the sidebar Editor.</p>
+<div id="editor-container" style="display: flex; flex-direction: column; align-items: center;">
+    <div id="sidebar-container" style="display: flex;">
+        <div id="editor"></div>
+        <div id="sidebar"></div>
+    </div>
+    <div id="word-count-note"></div>
 </div>
 
 <script src="dist/sidebar.bundle.js"></script>

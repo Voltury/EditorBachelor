@@ -9,6 +9,9 @@ import Manager from "../../Manager";
 import DropdownSuggestion from "./Dropdown";
 import ModalPlugin from "../../Modal/Modal";
 
+import './app.css';
+import {WordCount} from "@ckeditor/ckeditor5-word-count";
+
 ClassicEditor
     .create(document.querySelector('#editor'), {
         plugins: [Essentials,
@@ -17,10 +20,23 @@ ClassicEditor
             List,
             Bold,
             Italic,
+            WordCount,
             Manager,
             DropdownSuggestion,
             ModalPlugin],
-        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList','modalButton']
+        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList','modalButton'],
+        wordCount: {
+            onUpdate: stats => {
+                // Get the word count.
+                const wordCount = stats.words;
+
+                // Get the word-count-note element.
+                const wordCountNote = document.getElementById('word-count-note');
+
+                // Update the word-count-note element.
+                wordCountNote.innerText = `Current word count: ${wordCount}`;
+            }
+        }
     })
     .then(editor => {
         console.log('Editor was initialized', editor);

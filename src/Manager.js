@@ -1,7 +1,7 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import Utils from "./utils";
 
-import TrackerCommunicator from "./TrackerCommunicator";
+import FileServer from "./FileServer";
 
 export default class Manager extends Plugin {
     constructor(editor) {
@@ -19,13 +19,16 @@ export default class Manager extends Plugin {
         // setup Study Align
         this.handleSal();
 
-        this.trackerCommunicator = new TrackerCommunicator();
+        this.trackerCommunicator = new FileServer(this.editor);
         this.trackerCommunicator.register_condition_id(this.conditionId);
         this.trackerCommunicator.register_participant_id(this.paricipantId);
     }
 
-    afterInit() {
+    setup_listeners() {
+        console.log(this.conditionId);
         if(!this.conditionId) return;
+
+        console.log("Start setting up listeners")
 
         document.addEventListener('keydown', event => {
             const currentDate = new Date();
@@ -80,6 +83,8 @@ export default class Manager extends Plugin {
                     console.log(error);
                 });
         });
+
+        console.log("Listeners setup")
     }
 
     handleSal(){

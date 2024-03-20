@@ -30,6 +30,7 @@
     "@ckeditor/ckeditor5-ui": "^40.2.0",
     "@ckeditor/ckeditor5-utils": "^40.2.0",
     "@ckeditor/ckeditor5-widget": "^40.2.0",
+    "@ckeditor/ckeditor5-word-count": "^40.2.0",
     "css-loader": "^5.2.7",
     "fs": "^0.0.1-security",
     "http-server": "^14.1.1",

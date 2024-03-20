@@ -20,33 +20,26 @@ export default class SidebarSuggestion extends Plugin {
         this.width = 200;
 
         this.editor.on('ready', () => {
-            const offset_left = document.querySelector('.ck-editor').offsetLeft;
-
-            // Create sidebar UI
-            this.sidebarElement = document.createElement('div');
+            // Use the existing sidebar div
+            this.sidebarElement = document.querySelector('#sidebar');
             this.sidebarElement.className = 'sidebar';
             this.sidebarElement.style.width = this.width + 'px';
-            this.sidebarElement.style.left = offset_left + "px";
-            let toolbar = document.querySelector('.ck-toolbar');
-            let toolbarHeight = toolbar.offsetHeight; // Get toolbar's height
-            let editorTopPosition = document.querySelector('.ck-editor').offsetTop; // Get editor's top position
-            this.sidebarElement.style.top = editorTopPosition + toolbarHeight + "px";
-            document.body.style.marginLeft = (offset_left + this.width + 1) + "px"; // the border adds a thickness if 2px (1, so borders overlap)
-            document.body.appendChild(this.sidebarElement);
+
+            // Set the sidebar height to match the editor height minus the toolbar height
+            let editorElement = document.querySelector('#editor');
+            let editorHeight = parseInt(getComputedStyle(editorElement).height);
+            this.sidebarElement.style.height = editorHeight + 'px';
 
             // Trigger suggestions
             this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
             this.editor.model.document.selection.on('change:range', TextSuggestion.clearTimer.bind(TextSuggestion));
         });
+
     }
 
     _possibleSuggestion() {
         if(this.currentlyWriting) return;
-        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor),
-            4,
-            20,
-            Utils._checkSuggestionAppropriate.bind(null, this.editor),
-            this._insertSuggestions.bind(this))
+        TextSuggestion.generateSuggestion(this.editor, Utils._getTextBeforeCursor(this.editor), 4, 20, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertSuggestions.bind(this))
     }
 
     _insertSuggestions(suggestions) {
@@ -91,7 +84,7 @@ export default class SidebarSuggestion extends Plugin {
         }
         this.editor.fire(Utils.SuggestionsRemoved, {"suggestions": suggestions});
     }
-
+    
     _addToText(suggestion) {
         this.currentlyWriting = true;
         const selection = this.editor.model.document.selection;

@@ -29,11 +29,7 @@ export default class DropdownSuggestion extends Plugin {
 
     _possibleSuggestion() {
         if (this.currentlyWriting) return;
-        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor),
-            3,
-            10,
-            Utils._checkSuggestionAppropriate.bind(null, this.editor),
-            this._insertDropdown.bind(this))
+        TextSuggestion.generateSuggestion(this.editor, Utils._getTextBeforeCursor(this.editor), 3, 10, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertDropdown.bind(this))
     }
 
     _insertDropdown(suggestions) {

@@ -4,9 +4,12 @@ import {Essentials} from '@ckeditor/ckeditor5-essentials';
 import {Heading} from '@ckeditor/ckeditor5-heading';
 import {List} from '@ckeditor/ckeditor5-list';
 import {Paragraph} from '@ckeditor/ckeditor5-paragraph';
+import {WordCount} from "@ckeditor/ckeditor5-word-count";
 
 import Manager from "../../Manager";
 import ModalPlugin from "../../Modal/Modal";
+
+import './app.css';
 
 ClassicEditor
     .create(document.querySelector('#editor'), {
@@ -16,9 +19,22 @@ ClassicEditor
             List,
             Bold,
             Italic,
+            WordCount,
             Manager,
             ModalPlugin],
-        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList','modalButton']
+        toolbar: ['heading', 'bold', 'italic', 'numberedList', 'bulletedList','modalButton'],
+        wordCount: {
+            onUpdate: stats => {
+                // Get the word count.
+                const wordCount = stats.words;
+
+                // Get the word-count-note element.
+                const wordCountNote = document.getElementById('word-count-note');
+
+                // Update the word-count-note element.
+                wordCountNote.innerText = `Current word count: ${wordCount}`;
+            }
+        }
     })
     .then(editor => {
         console.log('Editor was initialized', editor);

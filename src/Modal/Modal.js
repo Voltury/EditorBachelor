@@ -1,16 +1,16 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import ButtonView from '@ckeditor/ckeditor5-ui/src/button/buttonview';
 import './theme/modal.css';
-import TrackerCommunicator from "../TrackerCommunicator";
+import FileServer from "../FileServer";
 import Manager from "../Manager";
 import Utils from "../utils";
 
 let selectedTask = null;
 const intro = {
     language: 'English',
-    textLength: 'The blog post must have a length between 300 - 350 words. Additionally your summary should be concise with a length of three to five sentences maximum.',
+    textLength: 'The blog post should have a at least 150 words.',
     quality: 'The quality of the text should be moderate / reasonable. It must not be perfect yet you should avoid making lot of mistakes. Try to be efficient and effective at the same time! The task does not assess your writing skills.',
-    time: 'You should try to finish the task within 20 - 30 minutes.'
+    time: 'You should try to finish the task within 8-12 minutes.'
 };
 
 export default class ModalPlugin extends Plugin {
@@ -18,13 +18,18 @@ export default class ModalPlugin extends Plugin {
         return [Manager]
     }
 
+    static get pluginName() {
+        return 'ModalPlugin';
+    }
+
     init() {
         const url = new URL(window.location.href);
         this.conditionId = url.searchParams.get("condition_id");
         this.paricipantId = url.searchParams.get("participant_id");
         this.participantToken = url.searchParams.get("participant_token");
+        this.waiting_for_data = {"tasks": true, "document_data": true};
 
-        this.trackerCommunicator = new TrackerCommunicator();
+        this.fileServer = new FileServer(this.editor);
 
         this.tasks = {};
         this.view = null;
@@ -43,26 +48,24 @@ export default class ModalPlugin extends Plugin {
             this.view.on('execute', () => {
                 this.showSelectedTask();
             });
-
             return this.view;
         });
 
         this.openLoadingModal();
-        // Open the modal upon starting
-        this.trackerCommunicator.get_tasks((response) => {
+
+        this.fileServer.get_tasks((response) => {
             this.tasks = JSON.parse(response);
+            this.waiting_for_data.tasks = false;
+
             console.log(this.tasks);
-            this.closeLoadingModal();
-            if (!this.tasks[this.conditionId]) {
-                this.openModal();
-            }
-            else{
-                this.view.set( {
-                    label: 'Task: ' + this.tasks[this.conditionId],
-                } );
-                const manager = this.editor.plugins.get(Manager.pluginName);
-                manager.saveToProceed(manager.participantToken);
-            }
+            if(this.waiting_for_data.document_data === false) this.closeLoadingModal();
+        });
+
+        this.fileServer.get_document_data((response) => {
+            this.editor.setData(response);
+            this.waiting_for_data.document_data = false;
+
+            if(this.waiting_for_data.tasks === false) this.closeLoadingModal();
         });
     }
 
@@ -82,6 +85,16 @@ export default class ModalPlugin extends Plugin {
     closeLoadingModal() {
         const modal = document.querySelector('.loading-modal');
         document.body.removeChild(modal);
+
+        if (!this.tasks[this.conditionId]) {
+            this.openModal();
+        }
+        else{
+            this.view.set( {
+                label: 'Task: ' + this.tasks[this.conditionId],
+            } );
+            this.start_data_collection();
+        }
     }
 
     openModal() {
@@ -129,11 +142,10 @@ export default class ModalPlugin extends Plugin {
             this.view.set( {
                 label: 'Task: ' + selectedTask.querySelector('h3').textContent,
             } );
-            this.trackerCommunicator.save_tasks(JSON.stringify(this.tasks));
+            this.fileServer.save_tasks(JSON.stringify(this.tasks));
 
-            const manager = this.editor.plugins.get(Manager.pluginName);
-            manager.saveToProceed(manager.participantToken);
             this.editor.fire(Utils.TaskSelected, {"selected": this.tasks[this.conditionId], "all": this.tasks.tasks});
+            this.start_data_collection();
         });
     }
 
@@ -165,5 +177,24 @@ export default class ModalPlugin extends Plugin {
         closeButton.addEventListener('click', () => {
             document.body.removeChild(modal);
         });
+    }
+
+    start_data_collection() {
+        const manager = this.editor.plugins.get(Manager.pluginName);
+
+        //this.fileServer.start_recording();
+        //manager.setup_listeners();
+        this.fileServer.enable_autosave();
+
+        // Set time until user can proceed
+        setTimeout(() => {
+            manager.saveToProceed(manager.participantToken);
+        }, 5000);
+    }
+
+    get_current_task() {
+        if(this.waiting_for_data.tasks === true || this.waiting_for_data.document_data === true) return null;
+        let task = this.tasks.tasks.find(task => task.title === this.tasks[this.conditionId]);
+        return task ? task.description : null;
     }
 }

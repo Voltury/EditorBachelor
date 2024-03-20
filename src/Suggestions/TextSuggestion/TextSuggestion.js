@@ -1,3 +1,5 @@
+import ModalPlugin from "../../Modal/Modal";
+
 export default class TextSuggestion {
     static delayInMs = 1000;
     static timer = null;
@@ -20,6 +22,7 @@ export default class TextSuggestion {
     }
 
     /**
+     * @param editor The editor instance
      * @param prompt The context that is being passed to the language model
      * @param suggestionCount Number of suggestions to generate
      * @param max_new_tokens Maximum length of the answer in tokens
@@ -27,19 +30,27 @@ export default class TextSuggestion {
      * @param callback Function that should be called upon receiving a response.
      * This function has to take a single string as parameters.
      */
-    static generateSuggestion(prompt, suggestionCount, max_new_tokens, check, callback) {
+    static generateSuggestion(editor, prompt, suggestionCount, max_new_tokens, check, callback) {
         // If a timer is already running, clear it.
         this.clearTimer();
         if (!check()) return;
 
         // Start a new timer that calls the server after 200ms.
         this.timer = setTimeout(() => {
-            this._makeRequest(prompt, suggestionCount, max_new_tokens, callback);
+            this._makeRequest(editor, prompt, suggestionCount, max_new_tokens, callback);
         }, this.delayInMs);
     }
 
-    static async _makeRequest(prompt, suggestionCount, max_new_tokens, callback) {
+    static async _makeRequest(editor, prompt, suggestionCount, max_new_tokens, callback) {
         this.requestsOngoing = true;
+
+
+        const task = editor.plugins.get(ModalPlugin.pluginName).get_current_task();
+        if(!task){
+            this.requestsOngoing = false;
+            return;
+        }
+
         // The actual request
         const url = "https://btn6x16.inf.uni-bayreuth.de/mistral-7b-instruct/api/v1/predict";
         const api_key = "alpacas#are#curly#llamas";
@@ -49,7 +60,7 @@ export default class TextSuggestion {
         // Create an array to hold all the fetch promises
         let fetchPromises = [];
         const data = JSON.stringify({
-            "input": prompt, // get editor data as input
+            "input": `${task}\n${prompt}`, // get editor data as input
             "kwargs": {
                 "repetition_penalty": 1.2,
                 "max_new_tokens": max_new_tokens,
@@ -87,16 +98,43 @@ export default class TextSuggestion {
                 }
 
                 const json = await response.json();
-                results.push(json.prediction.toString());
+                let suggestion = this.cleanup_suggestion(json.prediction.toString());
+
+                // Only add non-empty suggestions to the results
+                if(suggestion.trim() !== '') {
+                    results.push(suggestion);
+                }
             }
-            // Call the callback with the results
+
+            // Call the callback with the results only if there are any
             this.requestsOngoing = false;
-            callback(results);
+            if(results.length > 0) {
+                callback(results);
+            }
+            else {
+                console.warn("Suggestion request ended with no results.");
+            }
+
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error("Error during fetch: " + error)
             }
             this.requestsOngoing = false;
         }
+    }
+
+    static cleanup_suggestion(suggestion) {
+        // Cut off the rest after the last dot that is in the last 30% of the suggestion.
+        let cutoffIndex = suggestion.lastIndexOf('.');
+        if (cutoffIndex !== -1 && cutoffIndex >= Math.floor(suggestion.length * 0.7)) {
+            suggestion = suggestion.substring(0, cutoffIndex + 1);
+        } else {
+            // If no dot is found in the last 70%, cut off after the last space in the suggestion.
+            cutoffIndex = suggestion.lastIndexOf(' ');
+            if (cutoffIndex !== -1) {
+                suggestion = suggestion.substring(0, cutoffIndex);
+            }
+        }
+        return suggestion;
     }
 }
