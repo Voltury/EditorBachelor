@@ -24,7 +24,8 @@ export default class InlineSuggestion extends Plugin {
         this.editor.model.document.on('change:data', () => {
             this._possibleSuggestion.bind(this)();
         });
-        this.editor.model.document.selection.on('change:range', () => {
+        this.editor.model.document.selection.on('change:range', (info) => {
+            console.log(info);
             this._removeExistingSuggestion.bind(this)();
         });
         // Add a keydown event listener to the editor.
@@ -82,31 +83,17 @@ export default class InlineSuggestion extends Plugin {
         TextSuggestion.clearTimer();
 
         if (this.currentlyWriting || !this.suggestion) return;
-        console.log("removing suggestion");
-        console.log(Utils._getTextBeforeCursor(this.editor, 10))
 
         this.currentlyWriting = true;
         // If there's an existing suggestion, remove it.
         this.editor.model.change(writer => {
-            // Save the current position of the selection
-            const currentPosition = this.editor.model.document.selection.getFirstPosition();
-
-            // Calculate the offset from the start of the suggestion to the current cursor position
-            const offset = currentPosition.offset - this.suggestion.parent.maxOffset;
-            console.log(offset);
-            // Create a new position at the start of the suggestion plus the offset
-            const newPosition = this.editor.model.createPositionAt(this.editor.model.createPositionBefore(this.suggestion), offset); // -2 == double with of non-editable element
-            console.log(newPosition);
-            console.log(this.editor.model.createPositionBefore(this.suggestion));
-
             writer.remove(this.suggestion);
             this.editor.fire(Utils.SuggestionsRemoved, {"suggestions": [this.suggestion.getAttribute('suggestion')]})
             this.suggestion = null;
-
-            // Set the selection to the new position
-            writer.setSelection( newPosition );
         });
         this.currentlyWriting = false;
+
+        console.log("Removed suggestion")
     }
 
 
