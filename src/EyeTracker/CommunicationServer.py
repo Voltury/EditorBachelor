@@ -194,7 +194,7 @@ async def save_document_data(data_):
 
 
 async def handle_event(event):
-    await remote_client.send_data(event)
+    await remote_client.send_data({"EVENT": json.loads(event)})
 
 
 def get_latest_data():
@@ -231,7 +231,7 @@ async def handle_connection(websocket):
 
     connection = websocket
     try:
-        print("Connected to server")
+        print("Connected ckeditor and Communication/File-Server")
         await connection.send("Hello Client")
 
         async for message in connection:
@@ -239,9 +239,9 @@ async def handle_connection(websocket):
             command = command[0] if command else None
             if identifier in functions:
                 if command:
-                    functions[identifier](command)
+                    await functions[identifier](command)
                 else:
-                    functions[identifier]()
+                    await functions[identifier]()
             else:
                 print(f"Unknown identifier {identifier}")
                 await connection.send(f"error Unknown identifier {identifier}")

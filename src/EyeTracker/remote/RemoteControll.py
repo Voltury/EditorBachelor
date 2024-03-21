@@ -16,10 +16,11 @@ class Data:
     code = "4I8UaFQzo7zpp9vlIMQ5"
 
 
-class RemoteClient:
+class RemoteControl:
     def __init__(self):
         self.websocket = None
         self.data = Data(None, None, None, [], {})
+        self.client = False
 
     async def connect(self):
         print("Trying to connect to Remote server...")
@@ -33,31 +34,48 @@ class RemoteClient:
                 while True:
                     try:
                         message = await self.websocket.recv()
-                        try:
-                            self.update_data(json.loads(message))
-                        except json.JSONDecodeError:
-                            await self.websocket.send("Invalid JSON data")
+                        await self.handle_message(message)
                     except websockets.ConnectionClosed:
                         print("Connection to Remote closed")
                         break
             except asyncio.TimeoutError:
                 time.sleep(1)
 
-    async def send_data(self, data):
+    async def send_data(self, data: dict):
         if self.websocket is not None:
             await self.websocket.send(json.dumps(data))
 
-    def update_data(self, data_):
-        keys = data_.keys()
-        for key in keys:
+    async def handle_message(self, message: str):
+        try:
+            message = json.loads(message)
+        except json.JSONDecodeError:
+            await self.websocket.send(json.dumps({"ERROR": f"Invalid JSON data {message}"}))
+            return
+
+        for key in message.keys():
+            # Update data object if key is in data object
             if hasattr(self.data, key):
-                print(f"Updated {key} from {getattr(self.data, key)} to {data_[key]}")
-                setattr(self.data, key, data_[key])
-            else:
-                print(f"Key {key} not found in data")
+                print(f"Updated {key} from {getattr(self.data, key)} to {message[key]}")
+                setattr(self.data, key, message[key])
+                continue
+
+            # Handle other keys
+            match key:
+                case "CLIENT":
+                    if message[key][0]:
+                        print("Remote Client connected")
+                        self.client = True
+                        await self.send_data({"get_latest_data": []})
+                    else:
+                        print("Remote Client disconnected")
+                        self.client = False
+                case "EVENT":
+                    print(f"Event received\n{message[key]}")
+                case default:
+                    print(f"{key}: {message[key]}")
 
 
 if __name__ == "__main__":
-    client = RemoteClient()
+    client = RemoteControl()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(client.connect())

@@ -16,7 +16,6 @@ async def register(websocket):
         await websocket.close()
         return
 
-    print(data)
     try:
         data = json.loads(data)
     except json.JSONDecodeError:
@@ -29,12 +28,21 @@ async def register(websocket):
             return
         Remote_Client = websocket
         print("Remote Client connected")
+
+        await Remote_Client.send(json.dumps({"CONTROL": [bool(Remote_Control)]}))
+        if Remote_Control:
+            await Remote_Control.send(json.dumps({"CLIENT": [True]}))
+
     elif data["code"] == '4I8UaFQzo7zpp9vlIMQ5':
         if Remote_Control:
             await websocket.close(code=1013, reason="Already a remote control connected")
             return
-        print("Remote Control connected")
         Remote_Control = websocket
+        print("Remote Control connected")
+
+        await Remote_Control.send(json.dumps({"CLIENT": [bool(Remote_Client)]}))
+        if Remote_Client:
+            await Remote_Client.send(json.dumps({"CONTROL": [True]}))
 
 
 async def unregister(websocket):
@@ -42,9 +50,13 @@ async def unregister(websocket):
     if websocket == Remote_Client:
         Remote_Client = None
         print("Remote Client disconnected")
+        if Remote_Control:
+            await Remote_Control.send(json.dumps({"CLIENT": [False]}))
     elif websocket == Remote_Control:
         Remote_Control = None
         print("Remote Control disconnected")
+        if Remote_Client:
+            await Remote_Client.send(json.dumps({"CONTROL": [False]}))
     await websocket.close()
 
 
@@ -57,12 +69,7 @@ async def server(websocket):
     try:
         await register(websocket)
         async for message in websocket:
-            if websocket == Remote_Client:
-                if Remote_Control:
-                    await Remote_Control.send(message)
-            else:
-                if Remote_Client:
-                    await Remote_Client.send(message)
+            await handle_message(websocket, message)
 
     except websockets.ConnectionClosed:
         print("Connection closed")
@@ -70,6 +77,15 @@ async def server(websocket):
     except OSError as e:
         print(f"OSError: {e}")
         await unregister(websocket)
+
+
+async def handle_message(sender, message):
+    if sender == Remote_Client:
+        if Remote_Control:
+            await Remote_Control.send(message)
+    else:
+        if Remote_Client:
+            await Remote_Client.send(message)
 
 
 loop = asyncio.new_event_loop()
