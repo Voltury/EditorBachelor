@@ -5,17 +5,32 @@ import pandas as pd
 import os
 import time
 
-found_eyetrackers = tr.find_all_eyetrackers()
-eyetracker = found_eyetrackers[0]
-print("Address: " + eyetracker.address)
-print("Model: " + eyetracker.model)
-print("Name (It's OK if this is empty): " + eyetracker.device_name)
-print("Serial number: " + eyetracker.serial_number)
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
-max_entries_per_bundle = 1000
-data_list = []
-data_queue = queue.Queue()
-writer = None
+found_eyetrackers = tr.find_all_eyetrackers()
+
+if not found_eyetrackers:
+    print(f"{bcolors.FAIL}No tracker found{bcolors.ENDC}")
+else:
+    eyetracker = found_eyetrackers[0]
+    print("Address: " + eyetracker.address)
+    print("Model: " + eyetracker.model)
+    print("Name (It's OK if this is empty): " + eyetracker.device_name)
+    print("Serial number: " + eyetracker.serial_number)
+
+    max_entries_per_bundle = 1000
+    data_list = []
+    data_queue = queue.Queue()
+    writer = None
 
 
 def gaze_data_callback(gaze_data):

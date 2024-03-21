@@ -2,13 +2,12 @@ import asyncio
 import json
 import os
 import websockets
+from dataclasses import dataclass
 
 import EyeTracker
+from remote.RemoteClient import RemoteClient
 
 connection = None
-participant_id = None
-condition_id = None
-participant_tasks = None
 tasks = [
     {
         "title": 'Shapeshifter',
@@ -53,43 +52,87 @@ tasks = [
 ]
 
 
-def register_participant_id(participant):
-    global participant_id
-    participant_id = participant
-    print(f"Registered participant id: {participant_id}")
+@dataclass
+class Data:
+    participant_id: str | None
+    condition_id: str | None
+    document: str | None
+    events: list
+    current_tasks: dict
+
+    def clear(self):
+        self.participant_id = None
+        self.condition_id = None
+        self.document = None
+        self.events = []
+        self.current_tasks = {}
+
+    async def set_participant_id(self, participant_id):
+        self.participant_id = participant_id
+        await remote_client.send_data({"participant_id": participant_id})
+
+    async def set_condition_id(self, condition_id):
+        self.condition_id = condition_id
+        await remote_client.send_data({"condition_id": condition_id})
+
+    async def set_document(self, document):
+        self.document = document
+        await remote_client.send_data({"document": document})
+
+    async def set_events(self, events):
+        self.events = events
+        await remote_client.send_data({"events": events})
+
+    async def set_current_tasks(self, current_tasks):
+        self.current_tasks = current_tasks
+        await remote_client.send_data({"current_tasks": current_tasks})
+
+    def to_dict(self):
+        return {
+            "participant_id": self.participant_id,
+            "condition_id": self.condition_id,
+            "document": self.document,
+            "events": self.events,
+            "current_tasks": self.current_tasks
+        }
 
 
-def register_condition_id(condition):
-    global condition_id
-    condition_id = condition
-    print(f"Registered condition id: {condition_id}")
+data = Data(None, None, None, [], {})
+
+
+async def register_participant_id(participant):
+    await data.set_participant_id(participant)
+    print(f"Registered participant id: {participant}")
+
+
+async def register_condition_id(condition):
+    await data.set_condition_id(condition)
+    print(f"Registered condition id: {condition}")
 
 
 async def start_recording():
-    if not participant_id or not condition_id:
+    if not data.participant_id or not data.condition_id:
         await connection.send("error Please register participant and condition id first")
         return
 
-    print(f"Starting recording of {participant_id} for {condition_id}")
-    EyeTracker.start_recording(participant_id, condition_id)
+    print(f"Starting recording of {data.participant_id} for {data.condition_id}")
+    EyeTracker.start_recording(data.participant_id, data.condition_id)
 
 
 async def end_recording():
-    if not participant_id or not condition_id:
+    if not data.participant_id or not data.condition_id:
         await connection.send("error Please register participant and condition id first")
         return
 
-    print(f"Ending recording of {participant_id} for {condition_id}")
+    print(f"Ending recording of {data.participant_id} for {data.condition_id}")
     EyeTracker.stop_recording()
 
 
 async def get_tasks():
-    global tasks
-
-    if not participant_id or not condition_id:
+    if not data.participant_id or not data.condition_id:
         connection.send("error Please register participant and condition id first")
         return
-    path = f"./data/{participant_id}/tasks.json"
+    path = f"./data/{data.participant_id}/tasks.json"
     exists = os.path.exists(path)
     if not exists:
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -98,76 +141,87 @@ async def get_tasks():
                 "tasks": tasks
             }
             json.dump(temp, file)
+            await data.set_current_tasks(json.dumps(temp))
             await connection.send("get_tasks " + json.dumps(temp))
     else:
         with open(path, "r") as file:
-            await connection.send("get_tasks " + file.read())
+            temp = file.read()
+            await data.set_current_tasks(json.dumps(temp))
+            await connection.send("get_tasks " + temp)
 
-    print(f"Getting tasks for participant id: {participant_id}")
+    print(f"Getting tasks for participant id: {data.participant_id}")
 
 
-async def save_tasks(tasks):
-    if not participant_id or not condition_id:
+async def save_tasks(tasks_):
+    if not data.participant_id or not data.condition_id:
         await connection.send("error Please register participant and condition id first")
         return
 
-    with open(f"./data/{participant_id}/tasks.json", "w") as file:
-        json.dump(json.loads(tasks), file)
+    with open(f"./data/{data.participant_id}/tasks.json", "w") as file:
+        json.dump(json.loads(tasks_), file)
+        await data.set_current_tasks(json.loads(tasks_))
 
 
 async def get_document_data():
-    if not participant_id or not condition_id:
+    if not data.participant_id or not data.condition_id:
         await connection.send("error Please register participant and condition id first")
         return
 
-    path = f"./data/{participant_id}/{condition_id}/document.html"
+    path = f"./data/{data.participant_id}/{data.condition_id}/document.html"
     exists = os.path.exists(path)
     if not exists:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
+            await data.set_document("")
             await connection.send("get_document_data ")
     else:
         with open(path, "r") as file:
-            await connection.send("get_document_data " + file.read())
+            temp = file.read()
+            await data.set_document(temp)
+            await connection.send("get_document_data " + temp)
 
-    print(f"Getting document data for participant id: {participant_id}")
+    print(f"Getting document data for participant id: {data.participant_id}")
 
 
-async def save_document_data(data):
-    if not participant_id or not condition_id:
+async def save_document_data(data_):
+    if not data.participant_id or not data.condition_id:
         await connection.send("error Please register participant and condition id first")
         return
 
-    with open(f"./data/{participant_id}/{condition_id}/document.html", "w") as file:
-        file.write(data)
+    with open(f"./data/{data.participant_id}/{data.condition_id}/document.html", "w") as file:
+        await data.set_document(data_)
+        file.write(data_)
+
+
+async def handle_event(event):
+    await remote_client.send_data(event)
+
+
+def get_latest_data():
+    return data.to_dict()
 
 
 def clear_local_storage():
-    global participant_id, condition_id, connection, participant_tasks
-
-    participant_id = None
-    condition_id = None
+    global connection
     connection = None
-    participant_tasks = None
+    data.clear()
 
 
 # Mapping identifiers to functions
 functions = {
     "register_participant_id": register_participant_id,
-    "register_condition_id": register_condition_id
-}
-
-async_functions = {
+    "register_condition_id": register_condition_id,
     "start_recording": start_recording,
     "end_recording": end_recording,
     "get_tasks": get_tasks,
     "save_tasks": save_tasks,
     "get_document_data": get_document_data,
-    "save_document_data": save_document_data
+    "save_document_data": save_document_data,
+    "event": handle_event
 }
 
 
-async def handle_connection(websocket, path):
+async def handle_connection(websocket):
     global connection
 
     # Only allow one connection at a time
@@ -188,11 +242,6 @@ async def handle_connection(websocket, path):
                     functions[identifier](command)
                 else:
                     functions[identifier]()
-            elif identifier in async_functions:
-                if command:
-                    await async_functions[identifier](command)
-                else:
-                    await async_functions[identifier]()
             else:
                 print(f"Unknown identifier {identifier}")
                 await connection.send(f"error Unknown identifier {identifier}")
@@ -205,14 +254,14 @@ async def handle_connection(websocket, path):
         print("-" * 40)
 
 
+remote_client = RemoteClient(get_latest_data)
 start_server = websockets.serve(handle_connection, "localhost", 55556)
 
 print("serving at port", 55556)
-asyncio.get_event_loop().run_until_complete(start_server)
-print("-"*40)
+print("-" * 40)
 
 try:
-    asyncio.get_event_loop().run_forever()
+    asyncio.get_event_loop().run_until_complete(asyncio.gather(remote_client.connect(), start_server))
 except KeyboardInterrupt:
     print("Keyboard interrupt")
     clear_local_storage()
