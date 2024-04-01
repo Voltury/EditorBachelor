@@ -141,12 +141,12 @@ async def get_tasks():
                 "tasks": tasks
             }
             json.dump(temp, file)
-            await data.set_current_tasks(json.dumps(temp))
+            await data.set_current_tasks(temp)
             await connection.send("get_tasks " + json.dumps(temp))
     else:
         with open(path, "r") as file:
             temp = file.read()
-            await data.set_current_tasks(json.dumps(temp))
+            await data.set_current_tasks(json.loads(temp))
             await connection.send("get_tasks " + temp)
 
     print(f"Getting tasks for participant id: {data.participant_id}")

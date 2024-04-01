@@ -10,17 +10,8 @@ Remote_Control = None
 async def register(websocket):
     global Remote_Client, Remote_Control
     print("Registering...")
-    try:
-        data = await asyncio.wait_for(websocket.recv(), timeout=10)
-    except asyncio.TimeoutError:
-        await websocket.close()
-        return
-
-    try:
-        data = json.loads(data)
-    except json.JSONDecodeError:
-        await websocket.close("Invalid JSON data")
-        return
+    data = await asyncio.wait_for(websocket.recv(), timeout=10)
+    data = json.loads(data)
 
     if data["code"] == '89cFkBJ8I3b9TGuvw1Bv':
         if Remote_Client:
@@ -74,12 +65,19 @@ async def server(websocket):
     except websockets.ConnectionClosed:
         print("Connection closed")
         await unregister(websocket)
+    except asyncio.TimeoutError:
+        print("Timeout")
+        await unregister(websocket)
     except OSError as e:
         print(f"OSError: {e}")
         await unregister(websocket)
-
+    except json.JSONDecodeError:
+        print("Invalid JSON data")
+        await unregister(websocket)
 
 async def handle_message(sender, message):
+    if message == 'close':
+        await unregister(sender)
     if sender == Remote_Client:
         if Remote_Control:
             await Remote_Control.send(message)
