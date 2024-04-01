@@ -19,15 +19,13 @@ export default class Manager extends Plugin {
         // setup Study Align
         this.handleSal();
 
-        this.trackerCommunicator = new FileServer(this.editor);
-        this.trackerCommunicator.register_condition_id(this.conditionId);
-        this.trackerCommunicator.register_participant_id(this.paricipantId);
+        this.fileServer = new FileServer(this.editor);
+        this.fileServer.register_condition_id(this.conditionId);
+        this.fileServer.register_participant_id(this.paricipantId);
     }
 
     setup_listeners() {
         console.log(this.conditionId);
-        if(!this.conditionId) return;
-
         console.log("Start setting up listeners")
 
         document.addEventListener('keydown', event => {
@@ -42,41 +40,55 @@ export default class Manager extends Plugin {
                 metaData.after_cursor = Utils._getTextAfterCursor(this.editor, 20);
             }
 
+            this.fileServer.event("keydown", event, timestamp);
+
             this.sal.logKeyboardInteraction(this.conditionId, 'keydown', event, timestamp, metaData)
                 .catch(error => {
                     console.log(error);
                 });
         });
+
         this.editor.on(Utils.SuggestionsRemoved, (event, data) => {
             const currentDate = new Date();
             const timestamp = currentDate.getTime();
+
+            this.fileServer.event(Utils.SuggestionsRemoved, data, timestamp);
 
             this.sal.logGenericInteraction(this.conditionId, Utils.SuggestionsRemoved, data, timestamp)
                 .catch(error => {
                     console.log(error);
                 });
         });
+
         this.editor.on(Utils.SuggestionsDisplayed, (event, data) => {
             const currentDate = new Date();
             const timestamp = currentDate.getTime();
+
+            this.fileServer.event(Utils.SuggestionsDisplayed, data, timestamp);
 
             this.sal.logGenericInteraction(this.conditionId, Utils.SuggestionsDisplayed, data, timestamp)
                 .catch(error => {
                     console.log(error);
                 });
         });
+
         this.editor.on(Utils.SuggestionInserted, (event, data) => {
             const currentDate = new Date();
             const timestamp = currentDate.getTime();
+
+            this.fileServer.event(Utils.SuggestionInserted, data, timestamp);
 
             this.sal.logGenericInteraction(this.conditionId, Utils.SuggestionInserted, data, timestamp)
                 .catch(error => {
                     console.log(error);
                 });
         });
+
         this.editor.on(Utils.TaskSelected, (event, data) => {
             const currentDate = new Date();
             const timestamp = currentDate.getTime();
+
+            this.fileServer.event(Utils.TaskSelected, data, timestamp);
 
             this.sal.logGenericInteraction(this.conditionId, Utils.TaskSelected, data, timestamp)
                 .catch(error => {

@@ -1,4 +1,4 @@
-import NonEditableElement from "./Suggestions/InlineSuggestions/NonEditableElement/NonEditableElement";
+import Utils from "./utils";
 
 export default class FileServer {
     constructor(editor){
@@ -99,6 +99,29 @@ export default class FileServer {
         let cleanedData = tempDiv.innerHTML;
 
         this.send("save_document_data " + cleanedData);
+    }
+
+    event(event_type, event, timestamp = {}) {
+        let temp = ""
+        if (event_type === "keydown") {
+            temp = JSON.stringify({
+                "event_type": event_type,
+                "event": {
+                    "key": event.key,
+                    "alt": event.altKey,
+                    "shift": event.shiftKey,
+                    "ctrl": event.ctrlKey
+                },
+                "timestamp": timestamp
+            });
+        } else if (event_type === Utils.SuggestionsRemoved || event_type === Utils.SuggestionsDisplayed || event_type === Utils.SuggestionInserted || event_type === Utils.TaskSelected) {
+            temp = JSON.stringify({
+                "event_type": event_type,
+                "event": event,
+                "timestamp": timestamp
+            });
+        }
+        this.send("event " + temp);
     }
 
     enable_autosave() {

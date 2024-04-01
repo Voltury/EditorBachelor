@@ -182,8 +182,8 @@ export default class ModalPlugin extends Plugin {
     start_data_collection() {
         const manager = this.editor.plugins.get(Manager.pluginName);
 
-        //this.fileServer.start_recording();
-        //manager.setup_listeners();
+        this.fileServer.start_recording();
+        manager.setup_listeners();
         this.fileServer.enable_autosave();
 
         // Set time until user can proceed
