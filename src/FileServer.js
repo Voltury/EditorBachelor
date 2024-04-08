@@ -124,6 +124,14 @@ export default class FileServer {
         this.send("event " + temp);
     }
 
+    set_study_align_connection(is_connected) {
+        this.send("study_align_connected " + is_connected);
+    }
+
+    set_prototype_logging(is_logging) {
+        this.send("set_prototype_logging " + is_logging);
+    }
+
     enable_autosave() {
         this.autosave_timer = setInterval(() => {
             if(this.content_changed) {
