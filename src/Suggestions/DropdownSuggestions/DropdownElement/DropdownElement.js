@@ -1,3 +1,5 @@
+import DropdownSuggestion from "../Dropdown";
+
 export default class DropdownElement {
     constructor() {
         // Create the suggestion list.
@@ -30,26 +32,38 @@ export default class DropdownElement {
         document.body.removeChild(this.suggestionList);
     }
 
-    addSuggestion(suggestion, buttonCallback) {
+    addSuggestion(suggestion, buttonCallback, index) {
+        this.dropdown = editor.plugins.get(DropdownSuggestion.pluginName);
         const listItem = document.createElement('li');
+
+        if(index === 0){
+            listItem.classList.add('selected');
+        }
+
         listItem.textContent = suggestion;
         listItem.style.padding = '10px';
         listItem.style.cursor = 'pointer';
         listItem.style.transitionDuration = '0.4s'; // Transition effect
-        listItem.onmouseover = function () {
-            listItem.style.backgroundColor = '#f2f2f2'
-        }; // Slightly gray when mouse hovers over
-        listItem.onmouseout = function () {
-            listItem.style.backgroundColor = 'white'
-        }; // Return to white when mouse leaves
+        listItem.onmouseover = () => {
+            this.mouseHover = true;
+            for (const child of this.suggestionList.children) {
+                child.classList.remove('selected');
+            }
+            listItem.classList.add('selected');
+            this.dropdown.selectedIndex = index;
+        };
+        listItem.onmouseout = () => {
+            this.mouseHover = false;
+        };
         listItem.onclick = () => buttonCallback(suggestion);
 
         this.suggestionList.appendChild(listItem);
     }
 
     addSuggestions(suggestions, buttonCallback) {
+        let counter = 0;
         for (const suggestion of suggestions) {
-            this.addSuggestion(suggestion, buttonCallback);
+            this.addSuggestion(suggestion, buttonCallback, counter++);
         }
     }
 

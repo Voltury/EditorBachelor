@@ -45,6 +45,15 @@ export default class TextSuggestion {
         this.requestsOngoing = true;
 
 
+        const response = []
+        for(let i = 0; i < suggestionCount; i++) {
+            response.push("This is a test suggestion " + i);
+        }
+        callback(response);
+        return;
+
+
+
         const task = editor.plugins.get(ModalPlugin.pluginName).get_current_task();
         if(!task){
             this.requestsOngoing = false;
@@ -52,7 +61,7 @@ export default class TextSuggestion {
         }
 
         // The actual request
-        const url = "https://btn6x16.inf.uni-bayreuth.de/mistral-7b-instruct/api/v1/predict";
+        const url = "https://btn6x16.inf.uni-bayreuth.de/mistral-7b/api/v1/predict";
         const api_key = "alpacas#are#curly#llamas";
 
         const signal = this.abortController.signal;

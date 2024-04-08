@@ -17,6 +17,7 @@ export default class DropdownSuggestion extends Plugin {
         const editor = this.editor;
         this.dropdownShow = false;
         this.currentlyWriting = false;
+        this.selectedIndex = 0;
 
         // Trigger suggestions
         this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
@@ -24,6 +25,36 @@ export default class DropdownSuggestion extends Plugin {
 
         editor.on('ready', () => {
             this.dropdownElement = new DropdownElement();
+
+            // Add these lines
+            document.addEventListener('keydown', (event) => {
+                if (!this.dropdownShow) return;
+
+                switch (event.key) {
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        if(this.dropdownElement.mouseHover) return;
+                        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+                        break;
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        if(this.dropdownElement.mouseHover) return;
+                        this.selectedIndex = Math.min(this.selectedIndex + 1, this.dropdownElement.suggestionList.children.length - 1);
+                        break;
+                    case 'Enter':
+                        event.preventDefault();
+                        this._addToText(this.dropdownElement.suggestionList.children[this.selectedIndex].textContent);
+                        break;
+                    default:
+                        return;
+                }
+
+                // Highlight the selected suggestion
+                for (const child of this.dropdownElement.suggestionList.children) {
+                    child.classList.remove('selected');
+                }
+                this.dropdownElement.suggestionList.children[this.selectedIndex].classList.add('selected');
+            });
         });
     }
 
@@ -38,7 +69,24 @@ export default class DropdownSuggestion extends Plugin {
         if (!selection.rangeCount) return;
 
         // Get the bounding rectangle of the current selection.
-        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        let rect;
+        if (selection.isCollapsed) {
+            // Create a temporary node at the selection.
+            const range = selection.getRangeAt(0).cloneRange();
+            const tempNode = document.createElement('span');
+            tempNode.appendChild(document.createTextNode('\u200B'));
+            range.insertNode(tempNode);
+
+            // Get the bounding rectangle of the temporary node.
+            rect = tempNode.getBoundingClientRect();
+
+            // Remove the temporary node.
+            tempNode.parentNode.removeChild(tempNode);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } else {
+            rect = selection.getRangeAt(0).getBoundingClientRect();
+        }
 
         // Add the dropdown to the document at the position of the selection.
         this.dropdownElement.addSuggestions(suggestions, this._addToText.bind(this));
@@ -50,6 +98,7 @@ export default class DropdownSuggestion extends Plugin {
     _removeDropdown() {
         TextSuggestion.clearTimer();
         if (!this.dropdownShow) return;
+        this.selectedIndex = 0;
 
         this.dropdownElement.removeFromDocument();
         this.dropdownShow = false;
