@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import time
 
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -16,12 +17,13 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-found_eyetrackers = tr.find_all_eyetrackers()
 
-if not found_eyetrackers:
+found_eye_trackers = tr.find_all_eyetrackers()
+
+if not found_eye_trackers:
     print(f"{bcolors.FAIL}No tracker found{bcolors.ENDC}")
 else:
-    eyetracker = found_eyetrackers[0]
+    eyetracker = found_eye_trackers[0]
     print("Address: " + eyetracker.address)
     print("Model: " + eyetracker.model)
     print("Name (It's OK if this is empty): " + eyetracker.device_name)
@@ -48,6 +50,9 @@ def gaze_data_callback(gaze_data):
 
 
 def start_recording(participant_id, condition):
+    if not found_eye_trackers:
+        return False
+
     global writer
 
     # Start the data writer thread
@@ -55,9 +60,13 @@ def start_recording(participant_id, condition):
     writer.start()
 
     eyetracker.subscribe_to(tr.EYETRACKER_GAZE_DATA, gaze_data_callback, as_dictionary=True)
+    return True
 
 
 def stop_recording():
+    if not found_eye_trackers:
+        return False
+
     print("Stopping recording")
     global writer
     eyetracker.unsubscribe_from(tr.EYETRACKER_GAZE_DATA, gaze_data_callback)
@@ -66,6 +75,7 @@ def stop_recording():
     data_queue.put(None)
     # Wait for the writer thread to finish
     writer.join()
+    return True
 
 
 def data_writer(participant_id, condition):
@@ -96,6 +106,11 @@ def data_writer(participant_id, condition):
             f.flush()
             os.fsync(f.fileno())
 
+
+def eye_tracker_connected() -> bool:
+    global found_eye_trackers
+    found_eye_trackers = tr.find_all_eyetrackers()
+    return found_eye_trackers
 
 
 if __name__ == "__main__":

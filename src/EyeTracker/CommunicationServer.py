@@ -54,24 +54,35 @@ tasks = [
 
 @dataclass
 class Data:
-    participant_id: str | None
-    condition_id: str | None
-    document: str | None
-    events: list
+    # intentionally not storing events to reduce network traffic
+    participant_id: int
+    condition_id: int
+    document: str
     current_tasks: dict
+    eye_tracker_connected: bool
+    eye_tracker_recording: bool
+    study_align_connected: bool
+    prototype_logging: bool
 
     def clear(self):
-        self.participant_id = None
-        self.condition_id = None
-        self.document = None
-        self.events = []
+        self.participant_id = -1
+        self.condition_id = -1
+        self.document = ""
         self.current_tasks = {}
+        self.eye_tracker_connected = False
+        self.eye_tracker_recording = False
+        self.study_align_connected = False
+        self.prototype_logging = False
 
     async def set_participant_id(self, participant_id):
+        participant_id = int(participant_id) if participant_id.isdigit() else -1
+
         self.participant_id = participant_id
         await remote_client.send_data({"participant_id": participant_id})
 
     async def set_condition_id(self, condition_id):
+        condition_id = int(condition_id) if condition_id.isdigit() else -1
+
         self.condition_id = condition_id
         await remote_client.send_data({"condition_id": condition_id})
 
@@ -79,35 +90,40 @@ class Data:
         self.document = document
         await remote_client.send_data({"document": document})
 
-    async def set_events(self, events):
-        self.events = events
-        await remote_client.send_data({"events": events})
-
     async def set_current_tasks(self, current_tasks):
         self.current_tasks = current_tasks
         await remote_client.send_data({"current_tasks": current_tasks})
+
+    async def set_eye_tracker_connected(self, connected):
+        self.eye_tracker_connected = bool(connected)
+        await remote_client.send_data({"eye_tracker_connected": self.eye_tracker_connected})
+
+    async def set_eye_tracker_recording(self, recording):
+        self.eye_tracker_recording = bool(recording)
+        await remote_client.send_data({"eye_tracker_recording": self.eye_tracker_recording})
+
+    async def set_study_align_connected(self, connected):
+        self.study_align_connected = bool(connected)
+        await remote_client.send_data({"study_align_connected": self.study_align_connected})
+
+    async def set_prototype_logging(self, logging):
+        self.prototype_logging = bool(logging)
+        await remote_client.send_data({"prototype_logging": self.prototype_logging})
 
     def to_dict(self):
         return {
             "participant_id": self.participant_id,
             "condition_id": self.condition_id,
             "document": self.document,
-            "events": self.events,
-            "current_tasks": self.current_tasks
+            "current_tasks": self.current_tasks,
+            "eye_tracker_connected": self.eye_tracker_connected,
+            "eye_tracker_recording": self.eye_tracker_recording,
+            "study_align_connected": self.study_align_connected,
+            "prototype_logging": self.prototype_logging
         }
 
 
-data = Data(None, None, None, [], {})
-
-
-async def register_participant_id(participant):
-    await data.set_participant_id(participant)
-    print(f"Registered participant id: {participant}")
-
-
-async def register_condition_id(condition):
-    await data.set_condition_id(condition)
-    print(f"Registered condition id: {condition}")
+data = Data(-1, -1, "", {}, EyeTracker.eye_tracker_connected(), False, False, False)
 
 
 async def start_recording():
@@ -183,7 +199,7 @@ async def get_document_data():
     print(f"Getting document data for participant id: {data.participant_id}")
 
 
-async def save_document_data(data_):
+async def save_document_data(data_: str):
     if not data.participant_id or not data.condition_id:
         await connection.send("error Please register participant and condition id first")
         return
@@ -194,11 +210,20 @@ async def save_document_data(data_):
 
 
 async def handle_event(event):
-    await remote_client.send_data({"EVENT": json.loads(event)})
+    await remote_client.send_data({"event": json.loads(event)})
 
 
 def get_latest_data():
     return data.to_dict()
+
+
+async def set_prototype_logging(should_log: bool) -> None:
+    """
+    This function is called by the RemoteClient to toggle the prototype logging
+    :param should_log: boolean
+    :return: None
+    """
+    await send_message({"set_prototype_logging": should_log})
 
 
 def clear_local_storage():
@@ -209,16 +234,22 @@ def clear_local_storage():
 
 # Mapping identifiers to functions
 functions = {
-    "register_participant_id": register_participant_id,
-    "register_condition_id": register_condition_id,
+    "register_participant_id": data.set_participant_id,
+    "register_condition_id": data.set_condition_id,
     "start_recording": start_recording,
     "end_recording": end_recording,
     "get_tasks": get_tasks,
     "save_tasks": save_tasks,
     "get_document_data": get_document_data,
     "save_document_data": save_document_data,
-    "event": handle_event
+    "event": handle_event,
+    "study_align_connected": data.set_study_align_connected,
+    "set_prototype_logging": data.set_prototype_logging
 }
+
+
+async def send_message(message):
+    await connection.send(message)
 
 
 async def handle_connection(websocket):
@@ -232,7 +263,9 @@ async def handle_connection(websocket):
     connection = websocket
     try:
         print("Connected ckeditor and Communication/File-Server")
-        await connection.send("Hello Client")
+        await send_message("Hello Client")
+
+        await remote_client.send_data({"PROTOTYPE": True})
 
         async for message in connection:
             identifier, *command = message.split(' ', 1)
@@ -244,17 +277,22 @@ async def handle_connection(websocket):
                     await functions[identifier]()
             else:
                 print(f"Unknown identifier {identifier}")
-                await connection.send(f"error Unknown identifier {identifier}")
+                await send_message(f"error Unknown identifier {identifier}")
 
     finally:
         await connection.close()
+        await data.set_prototype_logging(False)
+        await remote_client.send_data({"PROTOTYPE": False})
+
         clear_local_storage()
         EyeTracker.stop_recording()
+        await data.set_eye_tracker_recording(False)
+
         print(f"Disconnected from server")
         print("-" * 40)
 
 
-remote_client = RemoteClient(get_latest_data)
+remote_client = RemoteClient(get_latest_data, set_prototype_logging)
 start_server = websockets.serve(handle_connection, "localhost", 55556)
 
 print("serving at port", 55556)

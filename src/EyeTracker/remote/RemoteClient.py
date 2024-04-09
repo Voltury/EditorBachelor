@@ -6,10 +6,15 @@ import websockets
 
 
 class RemoteClient:
-    def __init__(self, get_latest_data):
+    """
+    Remote Client class to connect to the Remote server
+    :parameter get_latest_data: callback function to get the latest data
+    """
+    def __init__(self, get_latest_data, set_prototype_logging):
         self.websocket = None
         self.remote = False
         self.get_latest_data = get_latest_data
+        self.set_prototype_logging = set_prototype_logging
 
     async def connect(self):
         print("Trying to connect to Remote server...")
@@ -44,7 +49,7 @@ class RemoteClient:
         for key in message.keys():
             match key:
                 case "CONTROL":
-                    if message[key][0]:
+                    if message[key]:
                         print("Remote Control connected")
                         self.remote = True
                     else:
