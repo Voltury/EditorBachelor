@@ -34,6 +34,8 @@ async def register(websocket):
         await Remote_Control.send(json.dumps({"CLIENT": [bool(Remote_Client)]}))
         if Remote_Client:
             await Remote_Client.send(json.dumps({"CONTROL": [True]}))
+    else:
+        print(f"Unknown code: {data}")
 
 
 async def unregister(websocket):
@@ -74,6 +76,7 @@ async def server(websocket):
     except json.JSONDecodeError:
         print("Invalid JSON data")
         await unregister(websocket)
+
 
 async def handle_message(sender, message):
     if message == 'close':
