@@ -2,8 +2,9 @@ import asyncio
 import json
 import os
 from dataclasses import dataclass
-
 import websockets
+
+from EyeTracker import EyeTracker
 
 
 @dataclass
@@ -11,6 +12,7 @@ class Data:
     # intentionally not storing events to reduce network traffic
     participant_id: int
     condition_id: int
+    study_id: int
     document: str
     current_tasks: dict
     eye_tracker_connected: bool
@@ -22,17 +24,20 @@ class Data:
     def clear(self):
         self.participant_id = -1
         self.condition_id = -1
+        self.study_id = -1
         self.document = ""
         self.current_tasks = {}
         self.eye_tracker_connected = False
         self.eye_tracker_recording = False
         self.study_align_connected = False
+        self.prototype_connected = False
         self.prototype_logging = False
 
     def to_dict(self):
         return {
             "participant_id": [self.participant_id],
             "condition_id": [self.condition_id],
+            "study_id": [self.study_id],
             "document": [self.document],
             "current_tasks": [self.current_tasks],
             "eye_tracker_connected": [self.eye_tracker_connected],
@@ -47,43 +52,62 @@ class FileServer:
     tasks = [
         {
             "title": 'Shapeshifter',
-            "description": 'Write a story about a woman who has been dating guy after guy, but it never seems to work out. She’s unaware that she’s actually been dating the same guy over and over; a shapeshifter who’s fallen for her, and is certain he’s going to get it right this time.'
+            "description": 'Write a story about a woman who has been dating guy after guy, but it never seems to work '
+                           'out. She’s unaware that she’s actually been dating the same guy over and over; a '
+                           'shapeshifter who’s fallen for her, and is certain he’s going to get it right this time.'
         },
         {
             "title": 'Reincarnation',
-            "description": 'Create a narrative where, when you die, you appear in a cinema with a number of other people who look like you. You find out that they are your previous reincarnations, and soon you all begin watching your next life on the big screen.'
+            "description": 'Create a narrative where, when you die, you appear in a cinema with a number of other '
+                           'people who look like you. You find out that they are your previous reincarnations, '
+                           'and soon you all begin watching your next life on the big screen.'
         },
         {
             "title": 'Mana',
-            "description": 'Imagine a world where humans once wielded formidable magical power. But with over 7 billion of us on the planet now, Mana has spread far too thinly to have any effect. When hostile aliens reduce humanity to a mere fraction, the survivors discover an old power has begun to reawaken once again. Write a story exploring how the survivors cope with their newfound power and the challenges they face in their struggle against the aliens.'
+            "description": 'Imagine a world where humans once wielded formidable magical power. But with over 7 '
+                           'billion of us on the planet now, Mana has spread far too thinly to have any effect. When '
+                           'hostile aliens reduce humanity to a mere fraction, the survivors discover an old power '
+                           'has begun to reawaken once again. Write a story exploring how the survivors cope with '
+                           'their newfound power and the challenges they face in their struggle against the aliens.'
         },
         {
             "title": 'Sideeffect',
-            "description": 'Explore the aftermath. When you’re 28, science discovers a drug that stops all effects of aging, creating immortality. Your government decides to give the drug to all citizens under 26, but you and the rest of the “Lost Generations” are deemed too high-risk. When you’re 85, the side effects are finally discovered.'
+            "description": 'Explore the aftermath. When you’re 28, science discovers a drug that stops all effects of '
+                           'aging, creating immortality. Your government decides to give the drug to all citizens '
+                           'under 26, but you and the rest of the “Lost Generations” are deemed too high-risk. When '
+                           'you’re 85, the side effects are finally discovered.'
         },
         {
             "title": 'Dad',
-            "description": 'In this comedic tale, all of the “#1 Dad” mugs in the world change to show the actual ranking of Dads suddenly.'
+            "description": 'In this comedic tale, all of the “#1 Dad” mugs in the world change to show the actual '
+                           'ranking of Dads suddenly.'
         },
         {
             "title": 'Free Pads and Tampons in Schools',
-            "description": 'Write an essay arguing for or against the provision of free pads and tampons alongside toilet paper and soap in schools. Consider the implications for student health and well-being.'
+            "description": 'Write an essay arguing for or against the provision of free pads and tampons alongside '
+                           'toilet paper and soap in schools. Consider the implications for student health and '
+                           'well-being.'
         },
         {
             "title": 'Important Lessons in School',
-            "description": 'Discuss the most important lessons that should be taught in schools. Consider a range of subjects and skills, from academic knowledge to life skills.'
+            "description": 'Discuss the most important lessons that should be taught in schools. Consider a range of '
+                           'subjects and skills, from academic knowledge to life skills.'
         },
         {
             "title": 'Paying College Athletes',
-            "description": 'Argue for or against paying college athletes. Consider whether a college scholarship and other non-monetary perks are enough, and what potential difficulties or downsides might exist in providing monetary compensation to players.'
+            "description": 'Argue for or against paying college athletes. Consider whether a college scholarship and '
+                           'other non-monetary perks are enough, and what potential difficulties or downsides might '
+                           'exist in providing monetary compensation to players.'
         },
         {
             "title": 'Extremesports',
-            "description": 'Discuss the ethics of pursuing risky sports like extreme mountain climbing. Consider the potential dangers and the reasons why people might choose to participate in these sports.'
+            "description": 'Discuss the ethics of pursuing risky sports like extreme mountain climbing. Consider the '
+                           'potential dangers and the reasons why people might choose to participate in these sports.'
         },
         {
             "title": 'Keeping Up With the News',
-            "description": 'Write an argumentative essay on the importance of keeping up with the news. Discuss the role of an informed citizenry in a democratic society.'
+            "description": 'Write an argumentative essay on the importance of keeping up with the news. Discuss the '
+                           'role of an informed citizenry in a democratic society.'
         }
     ]
 
@@ -94,10 +118,12 @@ class FileServer:
         self.file_server_port = file_server_port
         self.web_app_connection: websockets.WebSocketServerProtocol = None
 
-        self.data = Data(-1, -1, "", {}, False, False, False, False, False)
+        self.eye_tracker = EyeTracker()
+        self.data = Data(-1, -1, -1, "", {}, self.eye_tracker.eye_tracker_connected(), False, False, False, False)
         self.command_lookup = {
             "register_participant_id": self.register_participant_id,
             "register_condition_id": self.register_condition_id,
+            "register_study_id": self.register_study_id,
             "start_recording": self.start_recording,
             "end_recording": self.end_recording,
             "get_tasks": self.get_tasks,
@@ -151,7 +177,7 @@ class FileServer:
         finally:
             await self.web_app_connection.close()
             self.web_app_connection = None
-            self.data.prototype_connected = False
+            self.data.clear()
             await self.send({"PROTOTYPE": [False],
                              "prototype_logging": [False],
                              "study_align_connected": [False],
@@ -194,13 +220,20 @@ class FileServer:
         self.data.condition_id = int(condition_id)
         await self.send({"condition_id": [self.data.condition_id]}, self.comm_server)
 
+    async def register_study_id(self, study_id: str) -> None:
+        print(f"Registering study id: {study_id}")
+        self.data.study_id = int(study_id)
+        await self.send({"study_id": [self.data.study_id]}, self.comm_server)
+
     async def start_recording(self) -> None:
         self.data.eye_tracker_recording = True
         await self.send({"eye_tracker_recording": [True]}, self.comm_server)
+        self.eye_tracker.start_recording(self.data.participant_id, self.data.condition_id)
 
     async def end_recording(self) -> None:
         self.data.eye_tracker_recording = False
         await self.send({"eye_tracker_recording": [False]}, self.comm_server)
+        self.eye_tracker.stop_recording()
 
     async def get_tasks(self) -> None:
         if not self.data.participant_id or not self.data.condition_id:
