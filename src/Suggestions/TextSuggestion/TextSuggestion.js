@@ -1,10 +1,9 @@
-import ModalPlugin from "../../Modal/Modal";
-
 export default class TextSuggestion {
-    static delayInMs = 1000;
     static timer = null;
     static abortController = new AbortController();
     static requestsOngoing = false;
+    static instruct = "https://btn6x16.inf.uni-bayreuth.de/zephyr-7b-beta/api/v1/predict";
+    static continuation = "https://btn6x16.inf.uni-bayreuth.de/mistral-7b/api/v1/predict";
 
     /**
      * Clears the internal timer and cancels ongoing requests
@@ -22,29 +21,41 @@ export default class TextSuggestion {
     }
 
     /**
-     * @param editor The editor instance
      * @param prompt The context that is being passed to the language model
-     * @param suggestionCount Number of suggestions to generate
-     * @param max_new_tokens Maximum length of the answer in tokens
+     * @param suggestionCount The number of suggestions to generate
      * @param check Function to check if suggestion is appropriate for current position
      * @param callback Function that should be called upon receiving a response.
-     * This function has to take a single string as parameters.
+     *        This function has to take a list of strings as parameters.
+     * @param delay_in_ms The delay in milliseconds before the request is sent.
+     * @param model The model to use for generating the suggestion
+     * @param kwargs Additional parameters for the model
      */
-    static generateSuggestion(editor, prompt, suggestionCount, max_new_tokens, check, callback) {
+    static generateSuggestion(prompt,
+                              suggestionCount = 1,
+                              check,
+                              callback,
+                              delay_in_ms = 1000,
+                              model = TextSuggestion.instruct, kwargs = {
+            "repetition_penalty": 1.2,
+            "max_new_tokens": 20,
+            "use_cache": true,
+            "do_sample": true,
+            "length_penalty": -1
+        }) {
         // If a timer is already running, clear it.
         this.clearTimer();
         if (!check()) return;
 
         // Start a new timer that calls the server after 200ms.
         this.timer = setTimeout(() => {
-            this._makeRequest(editor, prompt, suggestionCount, max_new_tokens, callback);
-        }, this.delayInMs);
+            this._makeRequest(prompt, suggestionCount, callback, model, kwargs);
+        }, delay_in_ms);
     }
 
-    static async _makeRequest(editor, prompt, suggestionCount, max_new_tokens, callback) {
+    static async _makeRequest(prompt, suggestionCount, callback, model, kwargs) {
         this.requestsOngoing = true;
 
-
+        /*
         const response = []
         for(let i = 0; i < suggestionCount; i++) {
             response.push("This is a test suggestion " + i);
@@ -52,36 +63,21 @@ export default class TextSuggestion {
         callback(response);
         return;
 
+         */
 
-
-        const task = editor.plugins.get(ModalPlugin.pluginName).get_current_task();
-        if(!task){
-            this.requestsOngoing = false;
-            return;
-        }
-
-        // The actual request
-        const url = "https://btn6x16.inf.uni-bayreuth.de/mistral-7b/api/v1/predict";
         const api_key = "alpacas#are#curly#llamas";
-
         const signal = this.abortController.signal;
 
         // Create an array to hold all the fetch promises
         let fetchPromises = [];
         const data = JSON.stringify({
-            "input": `${task}\n${prompt}`, // get editor data as input
-            "kwargs": {
-                "repetition_penalty": 1.2,
-                "max_new_tokens": max_new_tokens,
-                "use_cache": true,
-                "do_sample": true,
-                "length_penalty": -1
-            }
+            "input": prompt,
+            "kwargs": kwargs
         });
 
         for(let i = 0; i < suggestionCount; i++) {
             // Create a new fetch request for each request and add it to the array
-            let fetchPromise = fetch(url, {
+            let fetchPromise = fetch(model, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
