@@ -9,7 +9,7 @@ let selectedTask = null;
 const intro = {
     language: 'English',
     textLength: 'The blog post should have a at least 150 words.',
-    quality: 'The quality of the text should be moderate / reasonable. It must not be perfect yet you should avoid making lot of mistakes. Try to be efficient and effective at the same time! The task does not assess your writing skills.',
+    quality: 'The quality of the text should be moderate / reasonable. It must not be perfect yet you should avoid making lots of mistakes. Try to be efficient and effective at the same time! The task does not assess your writing skills.',
     time: 'You should try to finish the task within 8-12 minutes.'
 };
 
@@ -54,7 +54,7 @@ export default class ModalPlugin extends Plugin {
         this.openLoadingModal();
 
         this.fileServer.get_tasks((response) => {
-            this.tasks = JSON.parse(response);
+            this.tasks = response;
             this.waiting_for_data.tasks = false;
 
             console.log(this.tasks);

@@ -3,6 +3,7 @@ import './theme/Sidebar.css';
 
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
 import Utils from "../../utils";
+import ModalPlugin from "../../Modal/Modal";
 
 export default class SidebarSuggestion extends Plugin {
     static get requires() {
@@ -17,6 +18,7 @@ export default class SidebarSuggestion extends Plugin {
         console.log('SidebarPlugin#init() got called');
 
         this.currentlyWriting = false;
+        this.max_suggestions = 4;
         this.width = 200;
 
         this.editor.on('ready', () => {
@@ -34,16 +36,37 @@ export default class SidebarSuggestion extends Plugin {
             this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
             this.editor.model.document.selection.on('change:range', TextSuggestion.clearTimer.bind(TextSuggestion));
         });
-
     }
 
     _possibleSuggestion() {
         if(this.currentlyWriting) return;
-        TextSuggestion.generateSuggestion(this.editor, Utils._getTextBeforeCursor(this.editor), 4, 20, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertSuggestions.bind(this))
+
+        const task = editor.plugins.get(ModalPlugin.pluginName).get_current_task();
+        if(!task){
+            this.requestsOngoing = false;
+            return;
+        }
+
+        let messages = [
+            {"role": "assistant", "content": `You are an assistant that's helping the user write a text about "${task}" by providing text suggestions which have to be complete sentences.`},
+            {"role": "user", "content": `${Utils._getTextBeforeCursor(this.editor)}`}
+        ]
+
+        TextSuggestion.generateSuggestion(
+            messages,
+            1,
+            Utils._checkSuggestionAppropriate.bind(null, this.editor),
+            this._insertSuggestions.bind(this),
+            1000,
+            TextSuggestion.instruct,
+            {
+                "repetition_penalty": 1.2,
+                "use_cache": true,
+                "do_sample": true
+            })
     }
 
     _insertSuggestions(suggestions) {
-        this._removeSuggestions();
         suggestions.forEach(suggestion => {
             const button = document.createElement('button');
             button.textContent = suggestion;
@@ -53,14 +76,12 @@ export default class SidebarSuggestion extends Plugin {
             button.style.borderBottom = '1px solid #ccc';
 
             button.style.marginBottom = '0px'; // No vertical spacing between buttons
-            //button.style.border = '1px solid #ccc'; // Add thin outline
             button.style.backgroundColor = 'white'; // White background
             button.style.color = 'black'; // Black text
             button.style.padding = '15px'; // Padding for a larger, more clickable area
             button.style.textAlign = 'center'; // Centered text
             button.style.textDecoration = 'none'; // Remove default underline
             button.style.display = 'inline-block';
-            //button.style.fontSize = '16px'; // Larger font size
             button.style.transitionDuration = '0.4s'; // Transition effect
             button.onmouseover = function () {
                 button.style.backgroundColor = '#f2f2f2'
@@ -70,9 +91,16 @@ export default class SidebarSuggestion extends Plugin {
             }; // Return to white when mouse leaves
             button.onclick = () => this._addToText(suggestion);
 
-            // Append each suggestion button to the sidebar element
-            this.sidebarElement.appendChild(button);
+            // Insert each suggestion button at the top of the sidebar element
+            this.sidebarElement.insertBefore(button, this.sidebarElement.firstChild);
         });
+
+        // If the number of suggestions exceeds maxSuggestions, remove the last one
+        while (this.sidebarElement.childNodes.length > this.max_suggestions) {
+            this.sidebarElement.removeChild(this.sidebarElement.lastChild);
+            this.editor.fire(Utils.SuggestionsRemoved, {"suggestion": this.sidebarElement.lastChild.textContent});
+        }
+
         this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": suggestions});
     }
 

@@ -55,7 +55,7 @@ export default class InlineSuggestion extends Plugin {
     }
 
     _possibleSuggestion() {
-        TextSuggestion.generateSuggestion(this.editor, Utils._getTextBeforeCursor(this.editor), 1, 10, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertNonEditableElement.bind(this))
+        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor), 1, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertNonEditableElement.bind(this))
     }
 
     _insertNonEditableElement(input) {

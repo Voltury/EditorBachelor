@@ -9,8 +9,6 @@ export default class NonEditableElement extends Plugin {
     }
 
     init() {
-        console.log('NonEditableElementEditing#init() got called');
-
         this._defineSchema();
         this._defineConverters();
     }
