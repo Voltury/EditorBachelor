@@ -133,7 +133,10 @@ class FileServer:
             "event": self.handle_event,
             "study_align_connected": self.set_study_align_connected,
             "set_prototype_logging": self.set_prototype_logging,
-            "get_latest_data": self.get_latest_data
+            "get_latest_data": self.get_latest_data,
+            "restart_timer": self.restart_timer,
+            "studyalign_proceed": self.studyalign_proceed,
+            "toggle_prototype_logging": self.toggle_prototype_logging
         }
 
     async def connect_to_comm_server(self) -> None:
@@ -185,7 +188,6 @@ class FileServer:
                             self.comm_server)
 
     async def receive(self, message: str, sender: websockets.WebSocketClientProtocol) -> None:
-
         try:
             message_json = json.loads(message)
         except json.JSONDecodeError:
@@ -313,6 +315,16 @@ class FileServer:
 
     async def get_latest_data(self) -> None:
         await self.send(self.data.to_dict(), self.comm_server)
+
+    async def restart_timer(self) -> None:
+        await self.send({"restart_timer": []}, self.comm_server)
+
+    async def studyalign_proceed(self) -> None:
+        await self.send({"studyalign_proceed": []}, self.web_app_connection)
+
+    async def toggle_prototype_logging(self) -> None:
+        self.data.prototype_logging = not self.data.prototype_logging
+        await self.send({"toggle_prototype_logging": []}, self.web_app_connection)
 
 
 if __name__ == "__main__":
