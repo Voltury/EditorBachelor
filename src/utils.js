@@ -5,6 +5,11 @@ export default class Utils {
     static TaskSelected = 'task_selected';
 
     static _checkSuggestionAppropriate(editor) {
+        // check if document is empty
+        if (editor.model.document.isEmpty) {
+            return false;
+        }
+
         // Checking if at last position
         const selection = editor.model.document.selection;
         const root = editor.model.document.getRoot();

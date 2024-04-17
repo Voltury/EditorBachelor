@@ -4,6 +4,7 @@ import {keyCodes} from "@ckeditor/ckeditor5-utils";
 import NonEditableElement from "./NonEditableElement/NonEditableElement";
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
 import Utils from "../../utils";
+import ModalPlugin from "../../Modal/Modal";
 
 
 export default class InlineSuggestion extends Plugin {
@@ -37,6 +38,10 @@ export default class InlineSuggestion extends Plugin {
             this._possibleSuggestion.bind(this)();
         });
 
+        this.editor.model.document.selection.on('change', () => {
+            TextSuggestion.clearTimer();
+        });
+
         // Add a keydown event listener to the editor.
         this.editor.editing.view.document.on('keydown', (evt, data) => {
             // Check if the pressed key is 'Tab'.
@@ -55,7 +60,19 @@ export default class InlineSuggestion extends Plugin {
     }
 
     _possibleSuggestion() {
-        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor), 1, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertNonEditableElement.bind(this))
+        const task = this.editor.plugins.get(ModalPlugin.pluginName).get_current_task();
+        if(!task){
+            this.requestsOngoing = false;
+            return;
+        }
+
+        TextSuggestion.generateSuggestion(
+            `${task}\n${Utils._getTextBeforeCursor(this.editor)}`,
+            1,
+            Utils._checkSuggestionAppropriate.bind(null, this.editor),
+            this._insertNonEditableElement.bind(this),
+            1000,
+            TextSuggestion.continuation)
     }
 
     _insertNonEditableElement(input) {

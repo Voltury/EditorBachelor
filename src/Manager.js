@@ -11,6 +11,7 @@ export default class Manager extends Plugin {
         this.conditionId = null;
         this.paricipantId = null;
         this.studyAlignConnection = false;
+        this.is_logging = false;
 
         this.keydownHandler = this.keydownHandler.bind(this);
         this.mouseEnterHandler = this.mouseEnterHandler.bind(this);
@@ -54,6 +55,7 @@ export default class Manager extends Plugin {
         this.editor.on(Utils.SuggestionInserted, this.suggestionInsertedHandler);
         this.editor.on(Utils.TaskSelected, this.taskSelectedHandler);
 
+        this.is_logging = true;
         this.fileServer.set_prototype_logging(true);
         console.log("Listeners setup");
     }
@@ -69,6 +71,7 @@ export default class Manager extends Plugin {
         this.editor.off(Utils.SuggestionsDisplayed, this.suggestionsDisplayedHandler);
         this.editor.off(Utils.SuggestionInserted, this.suggestionInsertedHandler);
 
+        this.is_logging = false;
         this.fileServer.set_prototype_logging(false);
         console.log("Listeners removed");
     }

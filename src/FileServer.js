@@ -1,4 +1,6 @@
 import Utils from "./utils";
+import Manager from "./Manager";
+import ModalPlugin from "./Modal/Modal";
 
 export default class FileServer {
     constructor(editor){
@@ -40,6 +42,20 @@ export default class FileServer {
                         break;
                     case 'document':
                         this.document_data_callback(value[0]);
+                        break;
+                    case 'studyalign_proceed':
+                        const modal = this.editor.plugins.get(ModalPlugin.pluginName);
+                        if(modal.proceed_timer){
+                            clearTimeout(this.editor.plugins.get(ModalPlugin.pluginName).proceed_timer);
+                            modal.proceed_timer = null;
+                            const manager  = this.editor.plugins.get(Manager.pluginName)
+                            manager.saveToProceed(manager.participantToken);
+                        }
+                        break;
+                    case 'toggle_prototype_logging':
+                        const manager = this.editor.plugins.get(Manager.pluginName);
+                        if(manager.is_logging) manager.remove_listeners();
+                        else manager.setup_listeners();
                         break;
                     default:
                         console.log('Message from server ', message);
@@ -145,6 +161,10 @@ export default class FileServer {
 
     set_prototype_logging(is_logging) {
         this.send({"set_prototype_logging": [is_logging]});
+    }
+
+    restart_timer(){
+        this.send({"restart_timer": []})
     }
 
     enable_autosave() {

@@ -10,7 +10,8 @@ const intro = {
     language: 'English',
     textLength: 'The blog post should have a at least 150 words.',
     quality: 'The quality of the text should be moderate / reasonable. It must not be perfect yet you should avoid making lots of mistakes. Try to be efficient and effective at the same time! The task does not assess your writing skills.',
-    time: 'You should try to finish the task within 8-12 minutes.'
+    time: 'You should try to finish the task within 8-12 minutes.',
+    hint:'While writing you can take a look at your chosen task by clicking on the "Task: ..." button in the toolbar.'
 };
 
 export default class ModalPlugin extends Plugin {
@@ -33,6 +34,7 @@ export default class ModalPlugin extends Plugin {
 
         this.tasks = {};
         this.view = null;
+        this.proceed_timer = null;
         const editor = this.editor;
 
         editor.ui.componentFactory.add( 'modalButton', locale => {
@@ -44,12 +46,21 @@ export default class ModalPlugin extends Plugin {
                 withText: true
             });
 
-            // Callback executed once the image is clicked.
+            // Add a class to the button
+            this.view.extendTemplate({
+                attributes: {
+                    class: [
+                        'modal-button'
+                    ]
+                }
+            });
+
             this.view.on('execute', () => {
                 this.showSelectedTask();
             });
             return this.view;
         });
+
 
         this.openLoadingModal();
 
@@ -106,7 +117,8 @@ export default class ModalPlugin extends Plugin {
                   <p><strong>Language:</strong> ${intro.language}</p>
                   <p><strong>Text Length:</strong> ${intro.textLength}</p>
                   <p><strong>Quality:</strong> ${intro.quality}</p>
-                  <p><strong>Time:</strong> ${intro.time}</p>`;
+                  <p><strong>Time:</strong> ${intro.time}</p>
+                  <p>${intro.hint}</p>`;
         this.tasks.tasks.forEach((task, index) => {
             if (!Object.values(this.tasks).includes(task.title)) {
                 modalContent += `
@@ -182,14 +194,15 @@ export default class ModalPlugin extends Plugin {
     start_data_collection() {
         const manager = this.editor.plugins.get(Manager.pluginName);
 
-        //this.fileServer.start_recording();
+        this.fileServer.start_recording();
         manager.setup_listeners();
         this.fileServer.enable_autosave();
 
         // Set time until user can proceed
-        setTimeout(() => {
+        this.proceed_timer = setTimeout(() => {
             manager.saveToProceed(manager.participantToken);
-        }, 5000);
+        }, 480000); // 8 minutes
+        this.fileServer.restart_timer();
     }
 
     get_current_task() {

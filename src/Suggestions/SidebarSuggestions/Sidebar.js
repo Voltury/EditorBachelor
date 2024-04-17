@@ -61,8 +61,10 @@ export default class SidebarSuggestion extends Plugin {
             TextSuggestion.instruct,
             {
                 "repetition_penalty": 1.2,
+                "max_new_tokens": 40,
                 "use_cache": true,
-                "do_sample": true
+                "do_sample": true,
+                "length_penalty": 0
             })
     }
 

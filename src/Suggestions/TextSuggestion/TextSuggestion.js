@@ -35,13 +35,14 @@ export default class TextSuggestion {
                               check,
                               callback,
                               delay_in_ms = 1000,
-                              model = TextSuggestion.instruct, kwargs = {
-            "repetition_penalty": 1.2,
-            "max_new_tokens": 20,
-            "use_cache": true,
-            "do_sample": true,
-            "length_penalty": -1
-        }) {
+                              model = TextSuggestion.instruct,
+                              kwargs = {
+                                  "repetition_penalty": 1.2,
+                                  "max_new_tokens": 10,
+                                  "use_cache": true,
+                                  "do_sample": true,
+                                  "length_penalty": -1
+                              }) {
         // If a timer is already running, clear it.
         this.clearTimer();
         if (!check()) return;
@@ -54,16 +55,6 @@ export default class TextSuggestion {
 
     static async _makeRequest(prompt, suggestionCount, callback, model, kwargs) {
         this.requestsOngoing = true;
-
-        /*
-        const response = []
-        for(let i = 0; i < suggestionCount; i++) {
-            response.push("This is a test suggestion " + i);
-        }
-        callback(response);
-        return;
-
-         */
 
         const api_key = "alpacas#are#curly#llamas";
         const signal = this.abortController.signal;
@@ -129,9 +120,9 @@ export default class TextSuggestion {
     }
 
     static cleanup_suggestion(suggestion) {
-        // Cut off the rest after the last dot that is in the last 30% of the suggestion.
+        // Cut off the rest after the last dot that is in the last 70% of the suggestion.
         let cutoffIndex = suggestion.lastIndexOf('.');
-        if (cutoffIndex !== -1 && cutoffIndex >= Math.floor(suggestion.length * 0.7)) {
+        if (cutoffIndex !== -1 && cutoffIndex >= Math.floor(suggestion.length * 0.3)) {
             suggestion = suggestion.substring(0, cutoffIndex + 1);
         } else {
             // If no dot is found in the last 70%, cut off after the last space in the suggestion.
