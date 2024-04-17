@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 from obswebsocket import obsws, requests
@@ -12,6 +13,8 @@ class OBSController:
         self.port = port
         self.password = password
         self.ws = obsws(self.host, self.port, self.password)
+        self.is_recording = False
+        self.connect()
 
     def connect(self):
         self.ws.connect()
@@ -19,8 +22,10 @@ class OBSController:
     def disconnect(self):
         self.ws.disconnect()
 
-    def start_recording(self):
+    async def start_recording(self):
         self.ws.call(requests.StartRecord())
+        await asyncio.sleep(0.2)
+        self.is_recording = self.ws.call(requests.GetRecordStatus()).datain['outputActive']
 
     def stop_recording(self, participant_id, condition_id):
         # Check if OBS is currently recording
@@ -53,6 +58,7 @@ class OBSController:
 
             # Move and rename the file in one call
             os.rename(latest_file, new_path)
+        self.is_recording = False
 
 
 # Usage

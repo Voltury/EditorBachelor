@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import websockets
 
 from EyeTracker import EyeTracker
+from remote.obs_script import OBSController
 
 
 @dataclass
@@ -20,6 +21,7 @@ class Data:
     study_align_connected: bool
     prototype_connected: bool
     prototype_logging: bool
+    obs_recording: bool
 
     def clear(self):
         self.participant_id = -1
@@ -32,6 +34,7 @@ class Data:
         self.study_align_connected = False
         self.prototype_connected = False
         self.prototype_logging = False
+        self.obs_recording = False
 
     def to_dict(self):
         return {
@@ -44,7 +47,8 @@ class Data:
             "eye_tracker_recording": [self.eye_tracker_recording],
             "study_align_connected": [self.study_align_connected],
             "PROTOTYPE": [self.prototype_connected],
-            "prototype_logging": [self.prototype_logging]
+            "prototype_logging": [self.prototype_logging],
+            "obs_recording": [self.obs_recording]
         }
 
 
@@ -112,6 +116,8 @@ class FileServer:
     ]
 
     def __init__(self, comm_server_uri: str, file_server_port: int):
+        self.obs_key = "CFd0w3bUdQHI3Ctf"
+        self.obs_port = 55558
         self.comm_server_uri = comm_server_uri
         self.comm_server: websockets.WebSocketClientProtocol = None
         self.remote = False
@@ -119,7 +125,10 @@ class FileServer:
         self.web_app_connection: websockets.WebSocketServerProtocol = None
 
         self.eye_tracker = EyeTracker()
-        self.data = Data(-1, -1, -1, "", {}, self.eye_tracker.eye_tracker_connected(), False, False, False, False)
+        self.obs = OBSController("localhost", self.obs_port, self.obs_key)
+
+        self.data = Data(-1, -1, -1, "", {}, self.eye_tracker.eye_tracker_connected(), False, False, False, False,
+                         False)
         self.command_lookup = {
             "register_participant_id": self.register_participant_id,
             "register_condition_id": self.register_condition_id,
@@ -133,10 +142,12 @@ class FileServer:
             "event": self.handle_event,
             "study_align_connected": self.set_study_align_connected,
             "set_prototype_logging": self.set_prototype_logging,
+            "set_obs_recording": self.set_obs_recording,
             "get_latest_data": self.get_latest_data,
             "restart_timer": self.restart_timer,
             "studyalign_proceed": self.studyalign_proceed,
-            "toggle_prototype_logging": self.toggle_prototype_logging
+            "toggle_prototype_logging": self.toggle_prototype_logging,
+            "toggle_obs_recording": self.toggle_obs_recording,
         }
 
     async def connect_to_comm_server(self) -> None:
@@ -179,12 +190,17 @@ class FileServer:
             print(f"Connection to Web Application at port {self.file_server_port} closed")
         finally:
             await self.web_app_connection.close()
+            if self.data.obs_recording:
+                await self.toggle_obs_recording()
+
             self.web_app_connection = None
             self.data.clear()
+
             await self.send({"PROTOTYPE": [False],
                              "prototype_logging": [False],
                              "study_align_connected": [False],
-                             "eye_tracker_recording": [False]},
+                             "eye_tracker_recording": [False],
+                             "obs_recording": [False]},
                             self.comm_server)
 
     async def receive(self, message: str, sender: websockets.WebSocketClientProtocol) -> None:
@@ -228,11 +244,18 @@ class FileServer:
         await self.send({"study_id": [self.data.study_id]}, self.comm_server)
 
     async def start_recording(self) -> None:
+        result = self.eye_tracker.start_recording(self.data.participant_id, self.data.condition_id)
+        if not result:
+            print("Eye tracker not connected")
+
         self.data.eye_tracker_recording = True
         await self.send({"eye_tracker_recording": [True]}, self.comm_server)
-        self.eye_tracker.start_recording(self.data.participant_id, self.data.condition_id)
 
     async def end_recording(self) -> None:
+        if not self.data.eye_tracker_recording:
+            print("Eye tracker not recording")
+            return
+
         self.data.eye_tracker_recording = False
         await self.send({"eye_tracker_recording": [False]}, self.comm_server)
         self.eye_tracker.stop_recording()
@@ -313,6 +336,13 @@ class FileServer:
         self.data.prototype_logging = logging
         await self.send({"prototype_logging": [logging]}, self.comm_server)
 
+        if logging is True and not self.data.obs_recording:
+            await self.toggle_obs_recording()
+
+    async def set_obs_recording(self, recording: bool) -> None:
+        self.data.obs_recording = recording
+        await self.send({"obs_recording": [recording]}, self.comm_server)
+
     async def get_latest_data(self) -> None:
         await self.send(self.data.to_dict(), self.comm_server)
 
@@ -325,6 +355,15 @@ class FileServer:
     async def toggle_prototype_logging(self) -> None:
         self.data.prototype_logging = not self.data.prototype_logging
         await self.send({"toggle_prototype_logging": []}, self.web_app_connection)
+
+    async def toggle_obs_recording(self) -> None:
+        if self.data.obs_recording:
+            self.obs.stop_recording(self.data.participant_id, self.data.condition_id)
+        else:
+            await self.obs.start_recording()
+        self.data.obs_recording = self.obs.is_recording
+        await self.send({"obs_recording": [self.data.obs_recording]}, self.comm_server)
+        print(f"OBS recording: {self.data.obs_recording}")
 
 
 if __name__ == "__main__":
