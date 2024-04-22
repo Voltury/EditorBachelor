@@ -116,6 +116,7 @@ class FileServer:
     ]
 
     def __init__(self, comm_server_uri: str, file_server_port: int):
+        self.loop = asyncio.get_event_loop()
         self.obs_key = "CFd0w3bUdQHI3Ctf"
         self.obs_port = 55558
         self.comm_server_uri = comm_server_uri
@@ -223,8 +224,8 @@ class FileServer:
                     await self.command_lookup[key](*value)
                 else:
                     print("Unknown command:", key)
-        except:
-            print("Error while executing command:", message_json)
+        except Exception as e:
+            print(f"Error '{e}' while executing command: {message_json}")
             await self.send({"ERROR": ["Error while executing command" + message]}, self.comm_server)
 
     @staticmethod
@@ -374,8 +375,8 @@ class FileServer:
         else:
             await self.start_recording()
 
-    async def eye_tracker_callback(self, data: list) -> None:
-        asyncio.create_task(self.send({"gaze_data": data}, self.comm_server))
+    def eye_tracker_callback(self, data: list):
+        return asyncio.run_coroutine_threadsafe(self.send({"gaze_data": data}, self.comm_server), self.loop)
 
 
 if __name__ == "__main__":

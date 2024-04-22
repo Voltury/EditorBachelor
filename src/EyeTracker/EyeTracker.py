@@ -12,21 +12,36 @@ class EyeTracker:
     @param tracker_callback: Callback function that is called every callback_intervall ms
     @param callback_intervall: Intervall in ms in which the tracker_callback is called
     """
-    def __init__(self, tracker_callback, callback_intervall=100):
+
+    def __init__(self, tracker_callback, callback_intervall=500):
         self.found_eye_trackers = tr.find_all_eyetrackers()
         self.eyetracker = self.found_eye_trackers[0] if self.found_eye_trackers else None
+        self.frequency = self.eyetracker.get_gaze_output_frequency()
         self.max_entries_per_bundle = 1000
         self.data_list = []
         self.data_queue = queue.Queue()
-        self.writer = None
+        self.writer_thread = None
+        self.server_thread = None
         self.tracker_callback = tracker_callback
-        self.callback_intervall = callback_intervall
-        self.last_callback = time.time_ns()
+        self.callback_interval_ms = callback_intervall
+        self.server_queue = queue.Queue()
+        print(f"Frequency: {self.frequency}")
+        self.last_callback = time.perf_counter() * 1000
 
     def gaze_data_callback(self, gaze_data):
-        if int((time.time_ns() - self.last_callback) / 1e6) > self.callback_intervall:
-            #self.tracker_callback([gaze_data['left_gaze_point_on_display_area_0'], gaze_data['right_gaze_point_on_display_area_0']])
-            self.last_callback = time.time_ns()
+        current_time = time.perf_counter() * 1000  # Convert to milliseconds
+
+        if current_time - self.last_callback > self.callback_interval_ms:
+            self.last_callback = current_time
+            try:
+                self.server_queue.put(
+                    [[gaze_data['left_gaze_point_on_display_area'][0], gaze_data['left_gaze_point_on_display_area'][1]],
+                     [gaze_data['right_gaze_point_on_display_area'][0], gaze_data['right_gaze_point_on_display_area'][1]]]
+                )
+            except Exception as e:
+                print(f"Exception when putting data in queue: {e}")
+            else:
+                print("Done putting data in queue")
 
         system_time_stamp_micro = int(time.time_ns() // 1e3)
         del gaze_data['system_time_stamp']
@@ -41,8 +56,12 @@ class EyeTracker:
         if not self.found_eye_trackers:
             return False
 
-        self.writer = threading.Thread(target=self.data_writer, args=(participant_id, condition))
-        self.writer.start()
+        self.writer_thread = threading.Thread(target=self.data_writer, args=(participant_id, condition))
+        self.writer_thread.start()
+
+        self.server_thread = threading.Thread(target=self.server_communication)
+        self.server_thread.start()
+
         self.eyetracker.subscribe_to(tr.EYETRACKER_GAZE_DATA, self.gaze_data_callback, as_dictionary=True)
         return True
 
@@ -54,7 +73,9 @@ class EyeTracker:
         if self.data_list:
             self.data_queue.put(self.data_list)
         self.data_queue.put(None)
-        self.writer.join()
+        self.server_queue.put(None)
+        self.writer_thread.join()
+        self.server_thread.join()
         return True
 
     def data_writer(self, participant_id, condition):
@@ -88,11 +109,25 @@ class EyeTracker:
 
     def eye_tracker_connected(self) -> bool:
         self.found_eye_trackers = tr.find_all_eyetrackers()
-        return self.found_eye_trackers
+        return bool(self.found_eye_trackers)
+
+    def server_communication(self):
+        print("Eyetracker callback started")
+        while True:
+            data = self.server_queue.get()
+            if data is None:
+                print("Eyetracker callback stopped")
+                break
+
+            future = self.tracker_callback(data)
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error in callback: {e}")
 
 
 if __name__ == "__main__":
-    eye_tracker = EyeTracker()
+    eye_tracker = EyeTracker(lambda: print("Callback"))
     eye_tracker.start_recording(0, "test")
     time.sleep(4)
     eye_tracker.stop_recording()
