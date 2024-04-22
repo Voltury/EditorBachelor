@@ -1,21 +1,33 @@
 import tobii_research as tr
-import threading
 import queue
 import pandas as pd
 import os
 import time
+import threading
 
 
 class EyeTracker:
-    def __init__(self):
+    """
+    Class to handle the eye tracker. It connects to the first found eye tracker and subscribes to the gaze data.
+    @param tracker_callback: Callback function that is called every callback_intervall ms
+    @param callback_intervall: Intervall in ms in which the tracker_callback is called
+    """
+    def __init__(self, tracker_callback, callback_intervall=100):
         self.found_eye_trackers = tr.find_all_eyetrackers()
         self.eyetracker = self.found_eye_trackers[0] if self.found_eye_trackers else None
         self.max_entries_per_bundle = 1000
         self.data_list = []
         self.data_queue = queue.Queue()
         self.writer = None
+        self.tracker_callback = tracker_callback
+        self.callback_intervall = callback_intervall
+        self.last_callback = time.time_ns()
 
     def gaze_data_callback(self, gaze_data):
+        if int((time.time_ns() - self.last_callback) / 1e6) > self.callback_intervall:
+            #self.tracker_callback([gaze_data['left_gaze_point_on_display_area_0'], gaze_data['right_gaze_point_on_display_area_0']])
+            self.last_callback = time.time_ns()
+
         system_time_stamp_micro = int(time.time_ns() // 1e3)
         del gaze_data['system_time_stamp']
         del gaze_data['device_time_stamp']
@@ -28,6 +40,7 @@ class EyeTracker:
     def start_recording(self, participant_id, condition):
         if not self.found_eye_trackers:
             return False
+
         self.writer = threading.Thread(target=self.data_writer, args=(participant_id, condition))
         self.writer.start()
         self.eyetracker.subscribe_to(tr.EYETRACKER_GAZE_DATA, self.gaze_data_callback, as_dictionary=True)
@@ -45,7 +58,9 @@ class EyeTracker:
         return True
 
     def data_writer(self, participant_id, condition):
-        path = f"./data/{participant_id}/{condition}/gaze_data.csv"
+        print("Starting data writer")
+
+        path = f"./../data/{participant_id}/{condition}/gaze_data.csv"
         os.makedirs(os.path.dirname(path), exist_ok=True)
         header = not os.path.exists(path)
         with open(path, 'ab') as f:
@@ -69,6 +84,7 @@ class EyeTracker:
                 header = False
                 f.flush()
                 os.fsync(f.fileno())
+        print("Data writer stopped")
 
     def eye_tracker_connected(self) -> bool:
         self.found_eye_trackers = tr.find_all_eyetrackers()

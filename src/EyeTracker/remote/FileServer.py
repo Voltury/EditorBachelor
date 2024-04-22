@@ -124,7 +124,7 @@ class FileServer:
         self.file_server_port = file_server_port
         self.web_app_connection: websockets.WebSocketServerProtocol = None
 
-        self.eye_tracker = EyeTracker()
+        self.eye_tracker = EyeTracker(self.eye_tracker_callback)
         self.obs = OBSController("localhost", self.obs_port, self.obs_key)
 
         self.data = Data(-1, -1, -1, "", {}, self.eye_tracker.eye_tracker_connected(), False, False, False, False,
@@ -190,6 +190,8 @@ class FileServer:
             print(f"Connection to Web Application at port {self.file_server_port} closed")
         finally:
             await self.web_app_connection.close()
+            await self.end_recording()
+
             if self.data.obs_recording:
                 await self.toggle_obs_recording()
 
@@ -248,6 +250,7 @@ class FileServer:
         if not result:
             print("Eye tracker not connected")
 
+        print("Eyetracker now recording")
         self.data.eye_tracker_recording = True
         await self.send({"eye_tracker_recording": [True]}, self.comm_server)
 
@@ -364,6 +367,15 @@ class FileServer:
         self.data.obs_recording = self.obs.is_recording
         await self.send({"obs_recording": [self.data.obs_recording]}, self.comm_server)
         print(f"OBS recording: {self.data.obs_recording}")
+
+    async def toggle_eye_tracker_recording(self) -> None:
+        if self.data.eye_tracker_recording:
+            await self.end_recording()
+        else:
+            await self.start_recording()
+
+    async def eye_tracker_callback(self, data: list) -> None:
+        asyncio.create_task(self.send({"gaze_data": data}, self.comm_server))
 
 
 if __name__ == "__main__":
