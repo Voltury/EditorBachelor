@@ -6,6 +6,7 @@ export default class FileServer {
     constructor(editor){
         this.tasks_callback = null;
         this.document_data_callback = null;
+        this.suggestion_callback = null;
         this.editor = editor;
         this.autosave_timer = null;
         this.content_changed = false;
@@ -56,6 +57,9 @@ export default class FileServer {
                         const manager = this.editor.plugins.get(Manager.pluginName);
                         if(manager.is_logging) manager.remove_listeners();
                         else manager.setup_listeners();
+                        break;
+                    case 'generated_suggestions':
+                        this.suggestion_callback(value[0]);
                         break;
                     default:
                         console.log('Message from server ', message);
@@ -179,5 +183,10 @@ export default class FileServer {
     disable_autosave() {
         clearInterval(this.autosave_timer);
         this.autosave_timer = null;
+    }
+
+    request_suggestions(last_x_symbols, task, suggestion_count, callback, kwargs) {
+        this.send({"request_suggestions": [last_x_symbols, task, suggestion_count, kwargs]});
+        this.suggestion_callback = callback;
     }
 }

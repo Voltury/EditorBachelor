@@ -41,31 +41,18 @@ export default class SidebarSuggestion extends Plugin {
     _possibleSuggestion() {
         if(this.currentlyWriting) return;
 
-        const task = editor.plugins.get(ModalPlugin.pluginName).get_current_task();
+        const task = this.editor.plugins.get(ModalPlugin.pluginName).get_current_task();
         if(!task){
-            this.requestsOngoing = false;
             return;
         }
 
-        let messages = [
-            {"role": "assistant", "content": `You are an assistant that's helping the user write a text about "${task}" by providing text suggestions which have to be complete sentences.`},
-            {"role": "user", "content": `${Utils._getTextBeforeCursor(this.editor)}`}
-        ]
-
         TextSuggestion.generateSuggestion(
-            messages,
+            Utils._getTextBeforeCursor(this.editor),
+            task,
             1,
             Utils._checkSuggestionAppropriate.bind(null, this.editor),
             this._insertSuggestions.bind(this),
-            1000,
-            TextSuggestion.instruct,
-            {
-                "repetition_penalty": 1.2,
-                "max_new_tokens": 40,
-                "use_cache": true,
-                "do_sample": true,
-                "length_penalty": 0
-            })
+            1000)
     }
 
     _insertSuggestions(suggestions) {

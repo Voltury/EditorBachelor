@@ -1,136 +1,61 @@
+import FileServer from "../../FileServer";
+
 export default class TextSuggestion {
     static timer = null;
-    static abortController = new AbortController();
-    static requestsOngoing = false;
-    static instruct = "https://btn6x16.inf.uni-bayreuth.de/zephyr-7b-beta/api/v1/predict";
-    static continuation = "https://btn6x16.inf.uni-bayreuth.de/mistral-7b/api/v1/predict";
+    static last_time_clear = 0;
+    static last_generation_call = 0;
+    static suggestion_callback = null;
+    static file_server = null;
 
-    /**
-     * Clears the internal timer and cancels ongoing requests
-     */
     static clearTimer() {
         if (this.timer) {
             clearTimeout(this.timer);
+            this.timer = null;
         }
-        if(this.requestsOngoing){
-            // cancel all ongoing requests
-            this.abortController.abort();
-            this.requestsOngoing = false;
-            this.abortController = new AbortController();
-        }
+        this.last_time_clear = Date.now();
     }
 
     /**
-     * @param prompt The context that is being passed to the language model
-     * @param suggestionCount The number of suggestions to generate
-     * @param check Function to check if suggestion is appropriate for current position
-     * @param callback Function that should be called upon receiving a response.
-     *        This function has to take a list of strings as parameters.
-     * @param delay_in_ms The delay in milliseconds before the request is sent.
-     * @param model The model to use for generating the suggestion
-     * @param kwargs Additional parameters for the model
+     * Generates a suggestion using the OpenAI API.
+     * @param prompt - The context that is being passed to the language model.
+     * @param task - The task the user has been given.
+     * @param suggestionCount - The number of suggestions to generate.
+     * @param check - Function to check if suggestion is appropriate for current position.
+     * @param callback - Function that should be called upon receiving a response. If an error occurs this function will not be called.
+     * @param delay_in_ms - The delay in milliseconds before the request is sent.
+     * @param kwargs - Additional parameters for the model.
      */
     static generateSuggestion(prompt,
+                              task,
                               suggestionCount = 1,
                               check,
                               callback,
                               delay_in_ms = 1000,
-                              model = TextSuggestion.instruct,
                               kwargs = {
-                                  "repetition_penalty": 1.2,
-                                  "max_new_tokens": 10,
-                                  "use_cache": true,
-                                  "do_sample": true,
-                                  "length_penalty": -1
+                                  temperature: 0.5,
+                                  max_tokens: 30,
+                                  stop: '.'
                               }) {
-        // If a timer is already running, clear it.
         this.clearTimer();
         if (!check()) return;
 
-        // Start a new timer that calls the server after 200ms.
+        if (!this.file_server) this.file_server = new FileServer(editor);
+
+        this.suggestion_callback = callback;
+
         this.timer = setTimeout(() => {
-            this._makeRequest(prompt, suggestionCount, callback, model, kwargs);
+            console.log('Requesting suggestions.')
+            this.file_server.request_suggestions(prompt, task, suggestionCount, this.suggestion_response.bind(this), kwargs);
+            this.last_generation_call = this.last_time_clear;
         }, delay_in_ms);
     }
 
-    static async _makeRequest(prompt, suggestionCount, callback, model, kwargs) {
-        this.requestsOngoing = true;
-
-        const api_key = "alpacas#are#curly#llamas";
-        const signal = this.abortController.signal;
-
-        // Create an array to hold all the fetch promises
-        let fetchPromises = [];
-        const data = JSON.stringify({
-            "input": prompt,
-            "kwargs": kwargs
-        });
-
-        for(let i = 0; i < suggestionCount; i++) {
-            // Create a new fetch request for each request and add it to the array
-            let fetchPromise = fetch(model, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': api_key
-                },
-                body: data,
-                signal // Pass the AbortSignal to the fetch call
-            });
-
-            fetchPromises.push(fetchPromise);
+    static async suggestion_response(suggestions) {
+        // Check if the timer has been cleared while the request was still running
+        if(this.last_time_clear !== this.last_generation_call){
+            console.log('Requests discarded.');
+            return;
         }
-
-        try {
-            // Wait for all fetch promises to resolve
-            let responses = await Promise.all(fetchPromises);
-
-            // Process each response
-            let results = [];
-            for(let response of responses) {
-                if (!response.ok) {
-                    console.warn("HTTP error " + response.status);
-                    return;
-                }
-
-                const json = await response.json();
-                let suggestion = this.cleanup_suggestion(json.prediction.toString());
-
-                // Only add non-empty suggestions to the results
-                if(suggestion.trim() !== '') {
-                    results.push(suggestion);
-                }
-            }
-
-            // Call the callback with the results only if there are any
-            this.requestsOngoing = false;
-            if(results.length > 0) {
-                callback(results);
-            }
-            else {
-                console.warn("Suggestion request ended with no results.");
-            }
-
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                console.error("Error during fetch: " + error)
-            }
-            this.requestsOngoing = false;
-        }
-    }
-
-    static cleanup_suggestion(suggestion) {
-        // Cut off the rest after the last dot that is in the last 70% of the suggestion.
-        let cutoffIndex = suggestion.lastIndexOf('.');
-        if (cutoffIndex !== -1 && cutoffIndex >= Math.floor(suggestion.length * 0.3)) {
-            suggestion = suggestion.substring(0, cutoffIndex + 1);
-        } else {
-            // If no dot is found in the last 70%, cut off after the last space in the suggestion.
-            cutoffIndex = suggestion.lastIndexOf(' ');
-            if (cutoffIndex !== -1) {
-                suggestion = suggestion.substring(0, cutoffIndex);
-            }
-        }
-        return suggestion;
+        this.suggestion_callback(suggestions);
     }
 }

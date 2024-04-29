@@ -3,6 +3,7 @@ import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import TextSuggestion from "../TextSuggestion/TextSuggestion";
 import DropdownElement from "./DropdownElement/DropdownElement";
 import Utils from "../../utils";
+import ModalPlugin from "../../Modal/Modal";
 
 export default class DropdownSuggestion extends Plugin {
     static get requires() {
@@ -60,7 +61,19 @@ export default class DropdownSuggestion extends Plugin {
 
     _possibleSuggestion() {
         if (this.currentlyWriting) return;
-        TextSuggestion.generateSuggestion(Utils._getTextBeforeCursor(this.editor), 1, Utils._checkSuggestionAppropriate.bind(null, this.editor), this._insertDropdown.bind(this))
+
+        const task = this.editor.plugins.get(ModalPlugin.pluginName).get_current_task();
+        if(!task){
+            return;
+        }
+
+        TextSuggestion.generateSuggestion(
+            Utils._getTextBeforeCursor(this.editor),
+            task,
+            3,
+            Utils._checkSuggestionAppropriate.bind(null, this.editor),
+            this._insertDropdown.bind(this),
+            1000)
     }
 
     _insertDropdown(suggestions) {

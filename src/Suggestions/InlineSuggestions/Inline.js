@@ -62,17 +62,16 @@ export default class InlineSuggestion extends Plugin {
     _possibleSuggestion() {
         const task = this.editor.plugins.get(ModalPlugin.pluginName).get_current_task();
         if(!task){
-            this.requestsOngoing = false;
             return;
         }
 
         TextSuggestion.generateSuggestion(
-            `${task}\n${Utils._getTextBeforeCursor(this.editor)}`,
+            Utils._getTextBeforeCursor(this.editor),
+            task,
             1,
             Utils._checkSuggestionAppropriate.bind(null, this.editor),
             this._insertNonEditableElement.bind(this),
-            1000,
-            TextSuggestion.continuation)
+            1000)
     }
 
     _insertNonEditableElement(input) {

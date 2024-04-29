@@ -42,6 +42,11 @@ export default class Manager extends Plugin {
         this.fileServer.register_study_id(this.study_id ? this.study_id : -1);
         this.fileServer.register_condition_id(this.conditionId ? this.conditionId : -1);
         this.fileServer.register_participant_id(this.paricipantId ? this.paricipantId : -1);
+
+        this.editor.editing.view.document.on('dragstart', ( evt, data ) => {
+            evt.stop();
+            data.preventDefault();
+        }, { priority: 'high' });
     }
 
     setup_listeners() {
