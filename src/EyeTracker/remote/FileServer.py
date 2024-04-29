@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 import websockets
 
+import suggestionGeneration
 from EyeTracker import EyeTracker
 from remote.obs_script import OBSController
 
@@ -149,6 +150,7 @@ class FileServer:
             "studyalign_proceed": self.studyalign_proceed,
             "toggle_prototype_logging": self.toggle_prototype_logging,
             "toggle_obs_recording": self.toggle_obs_recording,
+            "request_suggestions": self.request_suggestions
         }
 
     async def connect_to_comm_server(self) -> None:
@@ -229,7 +231,7 @@ class FileServer:
             await self.send({"ERROR": ["Error while executing command" + message]}, self.comm_server)
 
     @staticmethod
-    async def send(message: dict, receiver: websockets.WebSocketClientProtocol) -> None:
+    async def send(message: dict, receiver) -> None:
         if receiver:
             await receiver.send(json.dumps(message))
 
@@ -377,6 +379,10 @@ class FileServer:
 
     def eye_tracker_callback(self, data: list):
         return asyncio.run_coroutine_threadsafe(self.send({"gaze_data": data}, self.comm_server), self.loop)
+
+    async def request_suggestions(self, last_x_symbols: str, task: str, suggestion_count: int, kwargs) -> None:
+        result = suggestionGeneration.suggestion_generation(last_x_symbols, task, suggestion_count, kwargs)
+        await self.send({"generated_suggestions": [result]}, self.web_app_connection)
 
 
 if __name__ == "__main__":
