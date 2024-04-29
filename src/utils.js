@@ -3,6 +3,7 @@ export default class Utils {
     static SuggestionsDisplayed = 'suggestions_displayed';
     static SuggestionInserted = 'suggestion_inserted';
     static TaskSelected = 'task_selected';
+    static ModalChanged = 'modal_changed';
 
     static _checkSuggestionAppropriate(editor) {
         // check if document is empty

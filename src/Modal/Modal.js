@@ -184,10 +184,13 @@ export default class ModalPlugin extends Plugin {
         modal.innerHTML = modalContent;
         document.body.appendChild(modal);
 
+        this.editor.fire(Utils.ModalChanged, {"is_open": true})
+
         const closeButton = modal.querySelector('.close-button');
 
         closeButton.addEventListener('click', () => {
             document.body.removeChild(modal);
+            this.editor.fire(Utils.ModalChanged, {"is_open": false})
         });
     }
 

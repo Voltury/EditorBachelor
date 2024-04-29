@@ -20,6 +20,7 @@ export default class Manager extends Plugin {
         this.suggestionsDisplayedHandler = this.suggestionsDisplayedHandler.bind(this);
         this.suggestionInsertedHandler = this.suggestionInsertedHandler.bind(this);
         this.taskSelectedHandler = this.taskSelectedHandler.bind(this);
+        this.modalHandler = this.modalHandler.bind(this);
     }
     static get pluginName() {
         return 'Manager';
@@ -59,6 +60,7 @@ export default class Manager extends Plugin {
         this.editor.on(Utils.SuggestionsDisplayed, this.suggestionsDisplayedHandler);
         this.editor.on(Utils.SuggestionInserted, this.suggestionInsertedHandler);
         this.editor.on(Utils.TaskSelected, this.taskSelectedHandler);
+        this.editor.on(Utils.ModalChanged, this.modalHandler);
 
         this.is_logging = true;
         this.fileServer.set_prototype_logging(true);
@@ -71,10 +73,10 @@ export default class Manager extends Plugin {
         document.removeEventListener('keydown', this.keydownHandler);
         document.removeEventListener('onmouseenter', this.mouseEnterHandler);
         document.removeEventListener('onmouseleave', this.mouseLeaveHandler);
-
         this.editor.off(Utils.SuggestionsRemoved, this.suggestionsRemovedHandler);
         this.editor.off(Utils.SuggestionsDisplayed, this.suggestionsDisplayedHandler);
         this.editor.off(Utils.SuggestionInserted, this.suggestionInsertedHandler);
+        this.editor.off(Utils.ModalChanged, this.modalHandler);
 
         this.is_logging = false;
         this.fileServer.set_prototype_logging(false);
@@ -213,6 +215,20 @@ export default class Manager extends Plugin {
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.TaskSelected, data, timestamp)
+                .catch(error => {
+                    console.log(error);
+                });
+        }
+    }
+
+    modalHandler(event, data){
+        const currentDate = new Date();
+        const timestamp = currentDate.getTime();
+
+        this.fileServer.event(Utils.ModalChanged, data, timestamp);
+
+        if (this.studyAlignConnection) {
+            this.sal.logGenericInteraction(this.conditionId, Utils.ModalChanged, data, timestamp)
                 .catch(error => {
                     console.log(error);
                 });
