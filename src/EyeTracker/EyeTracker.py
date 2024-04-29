@@ -13,7 +13,7 @@ class EyeTracker:
     @param callback_intervall: Intervall in ms in which the tracker_callback is called
     """
 
-    def __init__(self, tracker_callback, callback_intervall=500):
+    def __init__(self, tracker_callback, callback_intervall=200):
         all_trackers = tr.find_all_eyetrackers()
         self.eyetracker = all_trackers[0] if all_trackers else None
         self.frequency = self.eyetracker.get_gaze_output_frequency() if self.eyetracker else None
@@ -46,8 +46,6 @@ class EyeTracker:
                 )
             except Exception as e:
                 print(f"Exception when putting data in queue: {e}")
-            else:
-                print("Done putting data in queue")
 
         # Time timestamps used by tobii lack a reference point and are only supposed to be used for synchronisation,
         # so we use the system time to create a reliable timestamp
@@ -109,7 +107,7 @@ class EyeTracker:
         """
         print("Starting data writer")
 
-        path = f"./../data/{participant_id}/{condition}/gaze_data.csv"
+        path = f"./data/{participant_id}/{condition}/gaze_data.csv"
         os.makedirs(os.path.dirname(path), exist_ok=True)
         header = not os.path.exists(path)
         with open(path, 'ab') as f:

@@ -42,7 +42,7 @@ class OBSController:
             latest_file = max([os.path.join(current_path, f) for f in os.listdir(current_path)], key=os.path.getctime)
 
             # Define new directory and filename
-            new_dir = f"./../data/{participant_id}/{condition_id}/"
+            new_dir = f"./data/{participant_id}/{condition_id}/"
             file_id = 0
             new_filename = f"screencapture_{file_id}.mkv"
             new_path = os.path.join(new_dir, new_filename)

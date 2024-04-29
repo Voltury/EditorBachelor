@@ -6,7 +6,7 @@ import websockets
 
 import suggestionGeneration
 from EyeTracker import EyeTracker
-from remote.obs_script import OBSController
+from obs_script import OBSController
 
 
 @dataclass
@@ -116,9 +116,9 @@ class FileServer:
         }
     ]
 
-    def __init__(self, comm_server_uri: str, file_server_port: int):
-        self.loop = asyncio.get_event_loop()
-        self.obs_key = "CFd0w3bUdQHI3Ctf"
+    def __init__(self, comm_server_uri: str, file_server_port: int, event_loop):
+        self.loop = event_loop
+        self.obs_key = "rb395S2vtyhxVs0v"
         self.obs_port = 55558
         self.comm_server_uri = comm_server_uri
         self.comm_server: websockets.WebSocketClientProtocol = None
@@ -271,7 +271,7 @@ class FileServer:
             await self.send({"ERROR": ["Please register participant and condition id first"]}, self.web_app_connection)
             return
 
-        path = f"./../data/{self.data.participant_id}/tasks.json"
+        path = f"./data/{self.data.participant_id}/tasks.json"
         exists = os.path.exists(path)
         if not exists:
             os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -295,7 +295,7 @@ class FileServer:
             await self.send({"ERROR": ["Please register participant and condition id first"]}, self.web_app_connection)
             return
 
-        with open(f"./../data/{self.data.participant_id}/tasks.json", "w") as file:
+        with open(f"./data/{self.data.participant_id}/tasks.json", "w") as file:
             json.dump(json.loads(message), file)
             self.data.current_tasks = json.loads(message)
         await self.send({"current_tasks": [json.loads(message)]}, self.comm_server)
@@ -305,7 +305,7 @@ class FileServer:
             await self.send({"ERROR": ["Please register participant and condition id first"]}, self.web_app_connection)
             return
 
-        path = f"./../data/{self.data.participant_id}/{self.data.condition_id}/document.html"
+        path = f"./data/{self.data.participant_id}/{self.data.condition_id}/document.html"
         exists = os.path.exists(path)
         if not exists:
             os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -326,7 +326,7 @@ class FileServer:
             await self.send({"ERROR": ["Please register participant and condition id first"]}, self.web_app_connection)
             return
 
-        with open(f"./../data/{self.data.participant_id}/{self.data.condition_id}/document.html", "w") as file:
+        with open(f"./data/{self.data.participant_id}/{self.data.condition_id}/document.html", "w") as file:
             file.write(message)
             self.data.document = message
         await self.send({"document": [message]}, self.comm_server)
@@ -386,12 +386,33 @@ class FileServer:
 
 
 if __name__ == "__main__":
-    server = FileServer('ws://195.201.205.251:55557', 55556)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    server = FileServer('ws://195.201.205.251:55557', 55556, loop)
 
     try:
-        asyncio.get_event_loop().run_until_complete(asyncio.gather(server.connect_to_comm_server(),
-                                                                   server.start_file_server()))
+        asyncio.run_coroutine_threadsafe(server.connect_to_comm_server(), loop)
+        asyncio.run_coroutine_threadsafe(server.start_file_server(), loop)
+        loop.run_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        # Cancel all tasks:
+        to_cancel = asyncio.all_tasks(loop)
+        if not to_cancel:
+            exit()
+
+        for task in to_cancel:
+            task.cancel()
+
+        loop.run_until_complete(
+            asyncio.gather(*to_cancel, return_exceptions=True))
+
+        # The above will cancel all tasks and wait for them to finish. If any
+        # task raised an exception other than CancelledError, that exception
+        # will be propagated here.
+
+        loop.close()
 
     print("Shutting down...")
+
