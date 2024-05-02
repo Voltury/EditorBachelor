@@ -17,7 +17,6 @@ export default class SidebarSuggestion extends Plugin {
     init() {
         console.log('SidebarPlugin#init() got called');
 
-        this.currentlyWriting = false;
         this.max_suggestions = 8;
         this.width = 200;
 
@@ -39,8 +38,6 @@ export default class SidebarSuggestion extends Plugin {
     }
 
     _possibleSuggestion() {
-        if(this.currentlyWriting) return;
-
         const task = this.editor.plugins.get(ModalPlugin.pluginName).get_current_task();
         if(!task){
             return;
@@ -103,7 +100,6 @@ export default class SidebarSuggestion extends Plugin {
     }
     
     _addToText(suggestion) {
-        this.currentlyWriting = true;
         const selection = this.editor.model.document.selection;
         const range = selection.getFirstPosition();
         this.editor.model.change(writer => {
@@ -119,7 +115,6 @@ export default class SidebarSuggestion extends Plugin {
         }
         this.editor.fire(Utils.SuggestionInserted, {"selected": suggestion, "all": suggestions})
 
-        this.currentlyWriting = false;
         // Set focus back to the text field
         this.editor.editing.view.focus();
     }
