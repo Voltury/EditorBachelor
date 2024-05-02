@@ -4,6 +4,7 @@ import TextSuggestion from "../TextSuggestion/TextSuggestion";
 import DropdownElement from "./DropdownElement/DropdownElement";
 import Utils from "../../utils";
 import ModalPlugin from "../../Modal/Modal";
+import {keyCodes} from "@ckeditor/ckeditor5-utils";
 
 export default class DropdownSuggestion extends Plugin {
     static get requires() {
@@ -22,28 +23,33 @@ export default class DropdownSuggestion extends Plugin {
 
         // Trigger suggestions
         this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
-        this.editor.model.document.selection.on('change:range', this._removeDropdown.bind(this));
+        this.editor.model.document.selection.on('change:range', () => {this._removeDropdown();});
 
         editor.on('ready', () => {
             this.dropdownElement = new DropdownElement();
 
             // Add these lines
-            document.addEventListener('keydown', (event) => {
+            this.editor.editing.view.document.on('keydown', (event, data) => {
+                if (data.keyCode === keyCodes.tab) {
+                    data.preventDefault();
+                    event.stop();
+                }
+
                 if (!this.dropdownShow) return;
 
-                switch (event.key) {
-                    case 'ArrowUp':
-                        event.preventDefault();
+                switch (data.keyCode) {
+                    case keyCodes.ArrowUp:
+                        data.preventDefault();
                         if(this.dropdownElement.mouseHover) return;
                         this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
                         break;
-                    case 'ArrowDown':
-                        event.preventDefault();
+                    case keyCodes.ArrowDown: case keyCodes.Tab:
+                        data.preventDefault();
                         if(this.dropdownElement.mouseHover) return;
                         this.selectedIndex = Math.min(this.selectedIndex + 1, this.dropdownElement.suggestionList.children.length - 1);
                         break;
-                    case 'Enter':
-                        event.preventDefault();
+                    case keyCodes.Enter:
+                        data.preventDefault();
                         this._addToText(this.dropdownElement.suggestionList.children[this.selectedIndex].textContent);
                         break;
                     default:
@@ -71,7 +77,7 @@ export default class DropdownSuggestion extends Plugin {
             Utils._getTextBeforeCursor(this.editor),
             task,
             3,
-            Utils._checkSuggestionAppropriate.bind(null, this.editor),
+            () => {return true},
             this._insertDropdown.bind(this),
             1000)
     }

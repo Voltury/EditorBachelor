@@ -25,11 +25,21 @@ export default class InlineSuggestion extends Plugin {
             const changes = this.editor.model.document.differ.getChanges();
 
             if(this.suggestion){
-                if(changes.length === 1 && changes[0].name === 'NonEditableElement' && changes[0].type === 'insert') {
+                if(changes.length === 1 && changes[0].name === 'NonEditableElement') {
                     return;
                 }
-                else if(changes.length === 1 && changes[0].name === 'NonEditableElement' && changes[0].type === 'remove'){
-                    return;
+                else if(changes.length === 1 && changes[0].type === 'insert' && changes[0].name === '$text' && changes[0].length === 1){
+                    // Check if the inserted text is a space (and before the suggestion)
+                    const insertedText = changes[0].position.parent._children._nodes[changes[0].position.path[0]]._data[changes[0].position.path[1]];
+                    console.log(insertedText)
+
+                    if(insertedText === ' '){
+                        // If it's a space, don't remove the suggestion
+                        return;
+                    }
+                    else{
+                        this._removeExistingSuggestion();
+                    }
                 }
                 else{
                     this._removeExistingSuggestion();
@@ -46,12 +56,11 @@ export default class InlineSuggestion extends Plugin {
         this.editor.editing.view.document.on('keydown', (evt, data) => {
             // Check if the pressed key is 'Tab'.
             if (data.keyCode === keyCodes.tab) {
+                // Prevent the default action.
+                data.preventDefault();
+                evt.stop();
                 // Check if there is a suggestion currently displayed.
                 if (this.suggestion) {
-                    // Prevent the default action.
-                    data.preventDefault();
-                    evt.stop();
-
                     // Remove the suggestion and replace it with normal text.
                     this._replaceSuggestion();
                 }
@@ -69,7 +78,7 @@ export default class InlineSuggestion extends Plugin {
             Utils._getTextBeforeCursor(this.editor),
             task,
             1,
-            Utils._checkSuggestionAppropriate.bind(null, this.editor),
+            () => {return true},
             this._insertNonEditableElement.bind(this),
             1000)
     }

@@ -33,8 +33,7 @@ export default class TextSuggestion {
                               delay_in_ms = 1000,
                               kwargs = {
                                   temperature: 0.5,
-                                  max_tokens: 10,
-                                  stop: '.'
+                                  max_tokens: 10
                               }) {
         this.clearTimer();
         if (!check()) return;

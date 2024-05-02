@@ -18,7 +18,7 @@ export default class SidebarSuggestion extends Plugin {
         console.log('SidebarPlugin#init() got called');
 
         this.currentlyWriting = false;
-        this.max_suggestions = 4;
+        this.max_suggestions = 8;
         this.width = 200;
 
         this.editor.on('ready', () => {
@@ -50,7 +50,7 @@ export default class SidebarSuggestion extends Plugin {
             Utils._getTextBeforeCursor(this.editor),
             task,
             1,
-            Utils._checkSuggestionAppropriate.bind(null, this.editor),
+            () => {return true},
             this._insertSuggestions.bind(this),
             1000)
     }
