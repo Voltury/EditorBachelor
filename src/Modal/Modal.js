@@ -1,7 +1,7 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import ButtonView from '@ckeditor/ckeditor5-ui/src/button/buttonview';
 import './theme/modal.css';
-import FileServer from "../FileServer";
+import FileServerConnection from "../FileServerConnection";
 import Manager from "../Manager";
 import Utils from "../utils";
 
@@ -30,7 +30,7 @@ export default class ModalPlugin extends Plugin {
         this.participantToken = url.searchParams.get("participant_token");
         this.waiting_for_data = {"tasks": true, "document_data": true};
 
-        this.fileServer = new FileServer(this.editor);
+        this.fileServerConnection = new FileServerConnection(this.editor);
 
         this.tasks = {};
         this.view = null;
@@ -64,7 +64,7 @@ export default class ModalPlugin extends Plugin {
 
         this.openLoadingModal();
 
-        this.fileServer.get_tasks((response) => {
+        this.fileServerConnection.get_tasks((response) => {
             this.tasks = response;
             this.waiting_for_data.tasks = false;
 
@@ -72,7 +72,7 @@ export default class ModalPlugin extends Plugin {
             if(this.waiting_for_data.document_data === false) this.closeLoadingModal();
         });
 
-        this.fileServer.get_document_data((response) => {
+        this.fileServerConnection.get_document_data((response) => {
             this.editor.setData(response);
             this.waiting_for_data.document_data = false;
 
@@ -154,7 +154,7 @@ export default class ModalPlugin extends Plugin {
             this.view.set( {
                 label: 'Task: ' + selectedTask.querySelector('h3').textContent,
             } );
-            this.fileServer.save_tasks(JSON.stringify(this.tasks));
+            this.fileServerConnection.save_tasks(JSON.stringify(this.tasks));
 
             this.editor.fire(Utils.TaskSelected, {"selected": this.tasks[this.conditionId], "all": this.tasks.tasks});
             this.start_data_collection();
@@ -197,15 +197,15 @@ export default class ModalPlugin extends Plugin {
     start_data_collection() {
         const manager = this.editor.plugins.get(Manager.pluginName);
 
-        this.fileServer.start_recording();
+        this.fileServerConnection.start_recording();
         manager.setup_listeners();
-        this.fileServer.enable_autosave();
+        this.fileServerConnection.enable_autosave();
 
         // Set time until user can proceed
         this.proceed_timer = setTimeout(() => {
             manager.saveToProceed(manager.participantToken);
         }, 480000); // 8 minutes
-        this.fileServer.restart_timer();
+        this.fileServerConnection.restart_timer();
     }
 
     get_current_task() {

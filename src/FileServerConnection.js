@@ -2,7 +2,7 @@ import Utils from "./utils";
 import Manager from "./Manager";
 import ModalPlugin from "./Modal/Modal";
 
-export default class FileServer {
+export default class FileServerConnection {
     constructor(editor){
         this.tasks_callback = null;
         this.document_data_callback = null;
@@ -11,11 +11,11 @@ export default class FileServer {
         this.autosave_timer = null;
         this.content_changed = false;
 
-        if (FileServer.instance) {
-            return FileServer.instance;
+        if (FileServerConnection.instance) {
+            return FileServerConnection.instance;
         }
 
-        FileServer.instance = this;
+        FileServerConnection.instance = this;
         this.socket = new WebSocket('ws://localhost:55556');
 
         this.connectionEstablished = new Promise((resolve, reject) => {
@@ -71,7 +71,7 @@ export default class FileServer {
             if(this.autosave_timer !== null) this.content_changed = true;
         });
 
-        return FileServer.instance;
+        return FileServerConnection.instance;
     }
 
     async send(data) {
@@ -185,8 +185,8 @@ export default class FileServer {
         this.autosave_timer = null;
     }
 
-    request_suggestions(last_x_symbols, task, suggestion_count, callback, kwargs) {
-        this.send({"request_suggestions": [last_x_symbols, task, suggestion_count, kwargs]});
+    request_suggestions(prompt, suggestion_count, callback, kwargs) {
+        this.send({"request_suggestions": [prompt, suggestion_count, kwargs]});
         this.suggestion_callback = callback;
     }
 }

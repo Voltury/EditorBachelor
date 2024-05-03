@@ -91,13 +91,15 @@ export default class DropdownSuggestion extends Plugin {
             return;
         }
 
+        const prompt = [{"role": "system",
+            "content": `You are a smart text completion tool that helps the user to write a blogpost about the following topic: ${task}`},
+            {"role": "user", "content": `Continue the text: ${Utils._getTextBeforeCursor(this.editor)}`}]
+
         TextSuggestion.generateSuggestion(
-            Utils._getTextBeforeCursor(this.editor),
-            task,
+            prompt,
             3,
             () => {return true},
-            this._insertDropdown.bind(this),
-            1000)
+            this._insertDropdown.bind(this))
     }
 
     _insertDropdown(suggestions) {

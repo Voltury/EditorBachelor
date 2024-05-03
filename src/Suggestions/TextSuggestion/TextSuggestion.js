@@ -1,4 +1,4 @@
-import FileServer from "../../FileServer";
+import FileServerConnection from "../../FileServerConnection";
 
 export default class TextSuggestion {
     static timer = null;
@@ -18,7 +18,6 @@ export default class TextSuggestion {
     /**
      * Generates a suggestion using the OpenAI API.
      * @param prompt - The context that is being passed to the language model.
-     * @param task - The task the user has been given.
      * @param suggestionCount - The number of suggestions to generate.
      * @param check - Function to check if suggestion is appropriate for current position.
      * @param callback - Function that should be called upon receiving a response. If an error occurs this function will not be called.
@@ -26,11 +25,10 @@ export default class TextSuggestion {
      * @param kwargs - Additional parameters for the model.
      */
     static generateSuggestion(prompt,
-                              task,
                               suggestionCount = 1,
                               check,
                               callback,
-                              delay_in_ms = 1000,
+                              delay_in_ms = 500,
                               kwargs = {
                                   temperature: 0.5,
                                   max_tokens: 10
@@ -38,13 +36,12 @@ export default class TextSuggestion {
         this.clearTimer();
         if (!check()) return;
 
-        if (!this.file_server) this.file_server = new FileServer(editor);
+        if (!this.file_server) this.file_server = new FileServerConnection(editor);
 
         this.suggestion_callback = callback;
 
         this.timer = setTimeout(() => {
-            console.log('Requesting suggestions.')
-            this.file_server.request_suggestions(prompt, task, suggestionCount, this.suggestion_response.bind(this), kwargs);
+            this.file_server.request_suggestions(prompt, suggestionCount, this.suggestion_response.bind(this), kwargs);
             this.last_generation_call = this.last_time_clear;
         }, delay_in_ms);
     }
@@ -52,7 +49,6 @@ export default class TextSuggestion {
     static async suggestion_response(suggestions) {
         // Check if the timer has been cleared while the request was still running
         if(this.last_time_clear !== this.last_generation_call){
-            console.log('Requests discarded.');
             return;
         }
         this.suggestion_callback(suggestions);

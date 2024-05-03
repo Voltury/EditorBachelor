@@ -1,7 +1,7 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import Utils from "./utils";
 
-import FileServer from "./FileServer";
+import FileServerConnection from "./FileServerConnection";
 
 export default class Manager extends Plugin {
     constructor(editor) {
@@ -28,21 +28,21 @@ export default class Manager extends Plugin {
 
     init() {
         // if this fails the website will display waiting modal
-        this.fileServer = new FileServer(this.editor);
+        this.fileServerConnection = new FileServerConnection(this.editor);
 
         // setup Study Align
         try {
             this.handleSal();
-            this.fileServer.set_study_align_connection(true);
+            this.fileServerConnection.set_study_align_connection(true);
             this.studyAlignConnection = true;
         }
         catch (e) {
             // the value for the connection is set to false by default no need to notify the remote control
             console.log("Failed to Evaluate Parameters for study align");
         }
-        this.fileServer.register_study_id(this.study_id ? this.study_id : -1);
-        this.fileServer.register_condition_id(this.conditionId ? this.conditionId : -1);
-        this.fileServer.register_participant_id(this.paricipantId ? this.paricipantId : -1);
+        this.fileServerConnection.register_study_id(this.study_id ? this.study_id : -1);
+        this.fileServerConnection.register_condition_id(this.conditionId ? this.conditionId : -1);
+        this.fileServerConnection.register_participant_id(this.paricipantId ? this.paricipantId : -1);
 
         this.editor.editing.view.document.on('dragstart', ( evt, data ) => {
             evt.stop();
@@ -63,7 +63,7 @@ export default class Manager extends Plugin {
         this.editor.on(Utils.ModalChanged, this.modalHandler);
 
         this.is_logging = true;
-        this.fileServer.set_prototype_logging(true);
+        this.fileServerConnection.set_prototype_logging(true);
         console.log("Listeners setup");
     }
 
@@ -79,7 +79,7 @@ export default class Manager extends Plugin {
         this.editor.off(Utils.ModalChanged, this.modalHandler);
 
         this.is_logging = false;
-        this.fileServer.set_prototype_logging(false);
+        this.fileServerConnection.set_prototype_logging(false);
         console.log("Listeners removed");
     }
 
@@ -128,7 +128,7 @@ export default class Manager extends Plugin {
             metaData.after_cursor = Utils._getTextAfterCursor(this.editor, 20);
         }
 
-        this.fileServer.event("keydown", event, timestamp);
+        this.fileServerConnection.event("keydown", event, timestamp);
 
         if (this.studyAlignConnection) {
             this.sal.logKeyboardInteraction(this.conditionId, 'keydown', event, timestamp, metaData)
@@ -142,7 +142,7 @@ export default class Manager extends Plugin {
         const currentDate = new Date();
         const timestamp = currentDate.getTime();
 
-        this.fileServer.event("onmouseenter", event, timestamp);
+        this.fileServerConnection.event("onmouseenter", event, timestamp);
 
         if (this.studyAlignConnection) {
             this.sal.logMouseInteraction(this.conditionId, 'onmouseenter', event, timestamp)
@@ -156,7 +156,7 @@ export default class Manager extends Plugin {
         const currentDate = new Date();
         const timestamp = currentDate.getTime();
 
-        this.fileServer.event("onmouseleave", event, timestamp);
+        this.fileServerConnection.event("onmouseleave", event, timestamp);
         if (this.studyAlignConnection) {
             this.sal.logMouseInteraction(this.conditionId, 'onmouseleave', event, timestamp)
                 .catch(error => {
@@ -169,7 +169,7 @@ export default class Manager extends Plugin {
         const currentDate = new Date();
         const timestamp = currentDate.getTime();
 
-        this.fileServer.event(Utils.SuggestionsRemoved, data, timestamp);
+        this.fileServerConnection.event(Utils.SuggestionsRemoved, data, timestamp);
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.SuggestionsRemoved, data, timestamp)
@@ -183,7 +183,7 @@ export default class Manager extends Plugin {
         const currentDate = new Date();
         const timestamp = currentDate.getTime();
 
-        this.fileServer.event(Utils.SuggestionsDisplayed, data, timestamp);
+        this.fileServerConnection.event(Utils.SuggestionsDisplayed, data, timestamp);
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.SuggestionsDisplayed, data, timestamp)
@@ -197,7 +197,7 @@ export default class Manager extends Plugin {
         const currentDate = new Date();
         const timestamp = currentDate.getTime();
 
-        this.fileServer.event(Utils.SuggestionInserted, data, timestamp);
+        this.fileServerConnection.event(Utils.SuggestionInserted, data, timestamp);
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.SuggestionInserted, data, timestamp)
@@ -211,7 +211,7 @@ export default class Manager extends Plugin {
         const currentDate = new Date();
         const timestamp = currentDate.getTime();
 
-        this.fileServer.event(Utils.TaskSelected, data, timestamp);
+        this.fileServerConnection.event(Utils.TaskSelected, data, timestamp);
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.TaskSelected, data, timestamp)
@@ -225,7 +225,7 @@ export default class Manager extends Plugin {
         const currentDate = new Date();
         const timestamp = currentDate.getTime();
 
-        this.fileServer.event(Utils.ModalChanged, data, timestamp);
+        this.fileServerConnection.event(Utils.ModalChanged, data, timestamp);
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.ModalChanged, data, timestamp)

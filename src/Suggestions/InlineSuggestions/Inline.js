@@ -74,13 +74,15 @@ export default class InlineSuggestion extends Plugin {
             return;
         }
 
+        const prompt = [{"role": "system",
+            "content": `You are a smart text completion tool that helps the user to write a blogpost about the following topic: ${task}`},
+            {"role": "user", "content": `Continue the text: ${Utils._getTextBeforeCursor(this.editor)}`}]
+
         TextSuggestion.generateSuggestion(
-            Utils._getTextBeforeCursor(this.editor),
-            task,
+            prompt,
             1,
             () => {return true},
-            this._insertNonEditableElement.bind(this),
-            1000)
+            this._insertNonEditableElement.bind(this))
     }
 
     _insertNonEditableElement(input) {

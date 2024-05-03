@@ -43,13 +43,15 @@ export default class SidebarSuggestion extends Plugin {
             return;
         }
 
+        const prompt = [{"role": "system",
+            "content": `You are a smart text completion tool that helps the user to write a blogpost about the following topic: ${task}`},
+            {"role": "user", "content": `Continue the text: ${Utils._getTextBeforeCursor(this.editor)}`}]
+
         TextSuggestion.generateSuggestion(
-            Utils._getTextBeforeCursor(this.editor),
-            task,
-            1,
+            prompt,
+            4,
             () => {return true},
-            this._insertSuggestions.bind(this),
-            1000)
+            this._insertSuggestions.bind(this))
     }
 
     _insertSuggestions(suggestions) {
