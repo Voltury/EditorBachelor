@@ -55,6 +55,8 @@ export default class SidebarSuggestion extends Plugin {
     }
 
     _insertSuggestions(suggestions) {
+        this._removeSuggestions();
+
         suggestions.forEach(suggestion => {
             const button = document.createElement('button');
             button.textContent = suggestion;
@@ -83,16 +85,13 @@ export default class SidebarSuggestion extends Plugin {
             this.sidebarElement.insertBefore(button, this.sidebarElement.firstChild);
         });
 
-        // If the number of suggestions exceeds maxSuggestions, remove the last one
-        while (this.sidebarElement.childNodes.length > this.max_suggestions) {
-            this.sidebarElement.removeChild(this.sidebarElement.lastChild);
-            this.editor.fire(Utils.SuggestionsRemoved, {"suggestion": this.sidebarElement.lastChild.textContent});
-        }
-
         this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": suggestions});
     }
 
     _removeSuggestions() {
+        // Ignore if there are no suggestions
+        if(!this.sidebarElement.firstChild) return;
+
         let suggestions = []
         while (this.sidebarElement.firstChild) {
             suggestions.push(this.sidebarElement.firstChild.textContent);

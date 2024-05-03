@@ -149,7 +149,7 @@ export default class FileServerConnection {
                 },
                 "timestamp": timestamp
             };
-        } else if (event_type === Utils.SuggestionsRemoved || event_type === Utils.SuggestionsDisplayed || event_type === Utils.SuggestionInserted || event_type === Utils.TaskSelected) {
+        } else {
             temp = {
                 "event_type": event_type,
                 "event": event,
