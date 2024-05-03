@@ -118,7 +118,7 @@ class FileServer:
 
     def __init__(self, comm_server_uri: str, file_server_port: int, event_loop):
         self.loop = event_loop
-        self.obs_key = "rb395S2vtyhxVs0v"
+        self.obs_key = "CFd0w3bUdQHI3Ctf"
         self.obs_port = 55558
         self.comm_server_uri = comm_server_uri
         self.comm_server: websockets.WebSocketClientProtocol = None
@@ -380,8 +380,8 @@ class FileServer:
     def eye_tracker_callback(self, data: list):
         return asyncio.run_coroutine_threadsafe(self.send({"gaze_data": data}, self.comm_server), self.loop)
 
-    async def request_suggestions(self, last_x_symbols: str, task: str, suggestion_count: int, kwargs) -> None:
-        result = suggestionGeneration.suggestion_generation(last_x_symbols, task, suggestion_count, kwargs)
+    async def request_suggestions(self, prompt: str, suggestion_count: int, kwargs) -> None:
+        result = suggestionGeneration.suggestion_generation(prompt, suggestion_count, kwargs)
         await self.send({"generated_suggestions": [result]}, self.web_app_connection)
 
 

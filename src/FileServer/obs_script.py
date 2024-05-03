@@ -33,7 +33,7 @@ class OBSController:
             self.ws.call(requests.StopRecord())
 
             # Wait for OBS to finish writing the file
-            time.sleep(5)
+            time.sleep(3)
 
             # Get the current recording path
             current_path = self.ws.call(requests.GetRecordDirectory()).datain['recordDirectory']

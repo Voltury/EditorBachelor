@@ -1,21 +1,14 @@
-import time
-
 from openai import OpenAI
 import concurrent.futures
 
 client = OpenAI(api_key='sk-proj-XAvumDNFY8LVfVBmXpiaT3BlbkFJIB9HCxi8iOLwZ0iOPijX')
 
 
-def suggestion_generation(last_x_symbols, task, suggestion_count, kwargs):
-    return ["suggestion"] * suggestion_count
-
+def suggestion_generation(prompt, suggestion_count, kwargs):
     def get_completion():
         completion = client.chat.completions.create(**({
-            'model':'gpt-3.5-turbo-0125',
-            'messages':[{"role": "system",
-                       "content": f"You are a smart text completion tool that helps the user to write a blogpost about "
-                                  f"the following topic: '{task}'"},
-                      {"role": "user", "content": f"Continue the text: ${last_x_symbols}"}]
+            'model': 'gpt-3.5-turbo-0125',
+            'messages': prompt,
         } | kwargs)
         )
         return completion.choices[0].message.content
