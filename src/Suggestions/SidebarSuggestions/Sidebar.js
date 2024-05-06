@@ -17,7 +17,6 @@ export default class SidebarSuggestion extends Plugin {
     init() {
         console.log('SidebarPlugin#init() got called');
 
-        this.max_suggestions = 8;
         this.width = 200;
 
         this.editor.on('ready', () => {
@@ -33,7 +32,29 @@ export default class SidebarSuggestion extends Plugin {
 
             // Trigger suggestions
             this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
-            this.editor.model.document.selection.on('change:range', TextSuggestion.clearTimer.bind(TextSuggestion));
+
+            this.editor.model.document.on('change:data', () => {
+                const changes = this.editor.model.document.differ.getChanges();
+
+                if(this.sidebarElement.firstChild){
+                    if(changes.length === 1 && changes[0].type === 'insert' && changes[0].name === '$text' && changes[0].length === 1){
+                        // Check if the inserted text is a space (and before the suggestion)
+                        const insertedText = changes[0].position.parent._children._nodes[changes[0].position.path[0]]._data[changes[0].position.path[1]];
+                        console.log(insertedText)
+
+                        if(insertedText === ' '){
+                            // If it's a space, don't remove the suggestion
+                            return;
+                        }
+                    }
+                    this._removeSuggestions();
+                }
+                this._possibleSuggestion.bind(this)();
+            });
+
+            this.editor.model.document.selection.on('change', () => {
+                TextSuggestion.clearTimer();
+            });
         });
     }
 
