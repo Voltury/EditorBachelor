@@ -27,6 +27,8 @@ class EyeTracker:
         self.server_queue = queue.Queue()
         self.last_callback = time.perf_counter() * 1000
 
+        print(f"Chosen tracker: {self.eyetracker.device_name} from {[tracker.device_name for tracker in all_trackers]}")
+
     def gaze_data_callback(self, gaze_data):
         """
         Callback function that is called when new gaze data is available. It collects a certain amount of data and
@@ -77,6 +79,7 @@ class EyeTracker:
         self.server_thread.start()
 
         self.eyetracker.subscribe_to(tr.EYETRACKER_GAZE_DATA, self.gaze_data_callback, as_dictionary=True)
+        print("EyeTracker recording started")
         return True
 
     def stop_recording(self):
@@ -87,7 +90,6 @@ class EyeTracker:
         """
         if not self.eyetracker:
             return False
-        print("Stopping recording")
         self.eyetracker.unsubscribe_from(tr.EYETRACKER_GAZE_DATA, self.gaze_data_callback)
         if self.data_list:
             self.data_queue.put(self.data_list)
@@ -95,6 +97,8 @@ class EyeTracker:
         self.server_queue.put(None)
         self.writer_thread.join()
         self.server_thread.join()
+
+        print("EyeTracker recording stopped")
         return True
 
     def data_writer(self, participant_id, condition):
@@ -105,7 +109,7 @@ class EyeTracker:
         :param condition: The condition id (from StudyAlign)
         :return: None
         """
-        print("Starting data writer")
+        print("Data writer started")
 
         path = f"./data/{participant_id}/{condition}/gaze_data.csv"
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -154,11 +158,11 @@ class EyeTracker:
         asynchronous and has to be handled accordingly.
         :return: None
         """
-        print("Eyetracker callback started")
+        print("Started sending eyetracking samples to the CommunicationServer")
         while True:
             data = self.server_queue.get()
             if data is None:
-                print("Eyetracker callback stopped")
+                print("Stopped sending eyetracking samples to the CommunicationServer")
                 break
 
             future = self.tracker_callback(data)

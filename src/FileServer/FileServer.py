@@ -118,7 +118,7 @@ class FileServer:
 
     def __init__(self, comm_server_uri: str, file_server_port: int, event_loop):
         self.loop = event_loop
-        self.obs_key = "CFd0w3bUdQHI3Ctf"
+        self.obs_key = "rb395S2vtyhxVs0v"
         self.obs_port = 55558
         self.comm_server_uri = comm_server_uri
         self.comm_server: websockets.WebSocketClientProtocol = None
@@ -187,6 +187,7 @@ class FileServer:
 
         try:
             print(f"Web Application connected at port {self.file_server_port}")
+            print("-"*30)
             while True:
                 await self.receive(await websocket.recv(), self.web_app_connection)
         except (websockets.ConnectionClosed, OSError):
@@ -207,6 +208,7 @@ class FileServer:
                              "eye_tracker_recording": [False],
                              "obs_recording": [False]},
                             self.comm_server)
+            print("-" * 30)
 
     async def receive(self, message: str, sender: websockets.WebSocketClientProtocol) -> None:
         try:
@@ -251,15 +253,14 @@ class FileServer:
     async def start_recording(self) -> None:
         result = self.eye_tracker.start_recording(self.data.participant_id, self.data.condition_id)
         if not result:
-            print("Eye tracker not connected")
+            print("Can not start recording, eyetracker disconnected")
 
-        print("Eyetracker now recording")
         self.data.eye_tracker_recording = True
         await self.send({"eye_tracker_recording": [True]}, self.comm_server)
 
     async def end_recording(self) -> None:
         if not self.data.eye_tracker_recording:
-            print("Eye tracker not recording")
+            print("Can not end recording, recording not started")
             return
 
         self.data.eye_tracker_recording = False
@@ -369,7 +370,6 @@ class FileServer:
             await self.obs.start_recording()
         self.data.obs_recording = self.obs.is_recording
         await self.send({"obs_recording": [self.data.obs_recording]}, self.comm_server)
-        print(f"OBS recording: {self.data.obs_recording}")
 
     async def toggle_eye_tracker_recording(self) -> None:
         if self.data.eye_tracker_recording:

@@ -18,14 +18,17 @@ class OBSController:
 
     def connect(self):
         self.ws.connect()
+        print("Connected to OBS websocket server")
 
     def disconnect(self):
         self.ws.disconnect()
+        print("Disconnected from OBS websocket server")
 
     async def start_recording(self):
         self.ws.call(requests.StartRecord())
         await asyncio.sleep(0.2)
         self.is_recording = self.ws.call(requests.GetRecordStatus()).datain['outputActive']
+        print(f"Started obs websocket recording. Is recording: {self.is_recording}")
 
     def stop_recording(self, participant_id, condition_id):
         # Check if OBS is currently recording
@@ -59,6 +62,7 @@ class OBSController:
             # Move and rename the file in one call
             os.rename(latest_file, new_path)
         self.is_recording = False
+        print("Stopped obs websocket recording")
 
 
 # Usage

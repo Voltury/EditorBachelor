@@ -5,6 +5,8 @@ client = OpenAI(api_key='sk-proj-XAvumDNFY8LVfVBmXpiaT3BlbkFJIB9HCxi8iOLwZ0iOPij
 
 
 def suggestion_generation(prompt, suggestion_count, kwargs):
+    return [f"suggestion{i}" for i in range(suggestion_count)]
+
     def get_completion():
         completion = client.chat.completions.create(**({
             'model': 'gpt-3.5-turbo-0125',
