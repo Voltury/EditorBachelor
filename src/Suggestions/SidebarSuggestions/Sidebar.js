@@ -65,8 +65,8 @@ export default class SidebarSuggestion extends Plugin {
         }
 
         const prompt = [{"role": "system",
-            "content": `You are a smart text completion tool that helps the user to write a blogpost about the following topic: ${task}`},
-            {"role": "user", "content": `Continue the text: ${Utils._getTextBeforeCursor(this.editor)}`}]
+            "content": `You are a smart text generator that helps the user to write a blogpost about the following topic: ${task}. Your task is to always generate exactly one complete sentence.`},
+            {"role": "user", "content": `${Utils._getTextBeforeCursor(this.editor)}.`}]
 
         TextSuggestion.generateSuggestion(
             prompt,

@@ -23,6 +23,7 @@ export default class TextSuggestion {
      * @param callback - Function that should be called upon receiving a response. If an error occurs this function will not be called.
      * @param delay_in_ms - The delay in milliseconds before the request is sent.
      * @param kwargs - Additional parameters for the model.
+     * https://community.openai.com/t/cheat-sheet-mastering-temperature-and-top-p-in-chatgpt-api/172683
      */
     static generateSuggestion(prompt,
                               suggestionCount = 1,
@@ -30,7 +31,8 @@ export default class TextSuggestion {
                               callback,
                               delay_in_ms = 500,
                               kwargs = {
-                                  temperature: 0.5,
+                                  temperature: 0.7,
+                                  top_p: 0.8,
                                   max_tokens: 10
                               }) {
         this.clearTimer();

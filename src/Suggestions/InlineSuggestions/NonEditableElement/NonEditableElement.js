@@ -8,6 +8,10 @@ export default class NonEditableElement extends Plugin {
         return [Widget];
     }
 
+    static get pluginName() {
+        return 'NonEditableElement';
+    }
+
     init() {
         this._defineSchema();
         this._defineConverters();
@@ -64,7 +68,7 @@ export default class NonEditableElement extends Plugin {
             const NonEditableElementView = viewWriter.createContainerElement('span', {
                 class: 'NonEditableElement',
                 contenteditable: "false", // make it read-only
-                style: "user-select: none;" // make it non-selectable
+                style: "user-select: none; !important;" // make it non-selectable
             });
 
             // Insert the NonEditableElement suggestion (as a text).
