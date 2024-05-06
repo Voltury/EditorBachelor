@@ -58,17 +58,17 @@ export default class DropdownSuggestion extends Plugin {
                 if (!this.dropdownShow) return;
 
                 switch (data.keyCode) {
-                    case keyCodes.ArrowUp:
+                    case keyCodes.arrowup:
                         data.preventDefault();
                         if(this.dropdownElement.mouseHover) return;
-                        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+                        this.selectedIndex = (this.selectedIndex - 1 + this.dropdownElement.suggestionList.children.length) % this.dropdownElement.suggestionList.children.length
                         break;
-                    case keyCodes.ArrowDown: case keyCodes.Tab:
+                    case keyCodes.arrowdown: case keyCodes.tab:
                         data.preventDefault();
                         if(this.dropdownElement.mouseHover) return;
-                        this.selectedIndex = Math.min(this.selectedIndex + 1, this.dropdownElement.suggestionList.children.length - 1);
+                        this.selectedIndex = (this.selectedIndex + 1) % this.dropdownElement.suggestionList.children.length;
                         break;
-                    case keyCodes.Enter:
+                    case keyCodes.enter:
                         data.preventDefault();
                         this._addToText(this.dropdownElement.suggestionList.children[this.selectedIndex].textContent);
                         break;

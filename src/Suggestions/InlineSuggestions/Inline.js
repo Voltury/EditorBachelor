@@ -37,13 +37,8 @@ export default class InlineSuggestion extends Plugin {
                         // If it's a space, don't remove the suggestion
                         return;
                     }
-                    else{
-                        this._removeExistingSuggestion();
-                    }
                 }
-                else{
-                    this._removeExistingSuggestion();
-                }
+                this._removeExistingSuggestion();
             }
             this._possibleSuggestion.bind(this)();
         });
