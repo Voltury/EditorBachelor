@@ -31,26 +31,35 @@ export default class SidebarSuggestion extends Plugin {
             this.sidebarElement.style.height = editorHeight + 'px';
 
             // Trigger suggestions
-            this.editor.model.document.on('change:data', this._possibleSuggestion.bind(this));
+            this.editor.model.document.registerPostFixer( writer => {
+                if(this.sidebarElement.firstChild) {
+                    const changes = this.editor.model.document.differ.getChanges();
 
-            this.editor.model.document.on('change:data', () => {
-                const changes = this.editor.model.document.differ.getChanges();
+                    // change of selection
+                    if(changes.length === 0){
+                        return;
+                    }
 
-                if(this.sidebarElement.firstChild){
-                    if(changes.length === 1 && changes[0].type === 'insert' && changes[0].name === '$text' && changes[0].length === 1){
-                        // Check if the inserted text is a space (and before the suggestion)
-                        const insertedText = changes[0].position.parent._children._nodes[changes[0].position.path[0]]._data[changes[0].position.path[1]];
-                        console.log(insertedText)
+                    for ( const entry of changes ) {
+                        if ( entry.type === 'insert' && entry.name === '$text' ) {
+                            // when creating a new paragraph, entry.position.textNode is empty
+                            let text = null;
+                            if(entry.position.textNode === null && entry.position.nodeAfter !== null){
+                                text =  entry.position.nodeAfter.data[entry.position.offset]
+                            }
+                            else{
+                                text = entry.position.textNode.data[entry.position.offset]
+                            }
 
-                        if(insertedText === ' '){
-                            // If it's a space, don't remove the suggestion
-                            return;
+                            if(text === ' '){
+                                return;
+                            }
                         }
                     }
                     this._removeSuggestions();
                 }
                 this._possibleSuggestion.bind(this)();
-            });
+            } );
 
             this.editor.model.document.selection.on('change', () => {
                 TextSuggestion.clearTimer();

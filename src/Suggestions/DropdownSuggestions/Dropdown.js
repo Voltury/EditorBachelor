@@ -21,24 +21,35 @@ export default class DropdownSuggestion extends Plugin {
         this.selectedIndex = 0;
 
         // Trigger suggestions
-        this.editor.model.document.on('change:data', () => {
-            const changes = this.editor.model.document.differ.getChanges();
+        this.editor.model.document.registerPostFixer( writer => {
+            if(this.dropdownShow) {
+                const changes = this.editor.model.document.differ.getChanges();
 
-            if(this.dropdownShow){
-                if(changes.length === 1 && changes[0].type === 'insert' && changes[0].name === '$text' && changes[0].length === 1){
-                    // Check if the inserted text is a space (and before the suggestion)
-                    const insertedText = changes[0].position.parent._children._nodes[changes[0].position.path[0]]._data[changes[0].position.path[1]];
-                    console.log(insertedText)
+                // change of selection
+                if(changes.length === 0){
+                    return;
+                }
 
-                    if(insertedText === ' '){
-                        // If it's a space, don't remove the suggestion
-                        return;
+                for ( const entry of changes ) {
+                    if ( entry.type === 'insert' && entry.name === '$text' ) {
+                        // when creating a new paragraph, entry.position.textNode is empty
+                        let text = null;
+                        if(entry.position.textNode === null && entry.position.nodeAfter !== null){
+                            text =  entry.position.nodeAfter.data[entry.position.offset]
+                        }
+                        else{
+                            text = entry.position.textNode.data[entry.position.offset]
+                        }
+
+                        if(text === ' '){
+                            return;
+                        }
                     }
                 }
                 this._removeDropdown();
             }
             this._possibleSuggestion.bind(this)();
-        });
+        } );
 
         this.editor.model.document.selection.on('change', () => {
             TextSuggestion.clearTimer();
@@ -69,9 +80,11 @@ export default class DropdownSuggestion extends Plugin {
                         this.selectedIndex = (this.selectedIndex + 1) % this.dropdownElement.suggestionList.children.length;
                         break;
                     case keyCodes.enter:
-                        data.preventDefault();
-                        this._addToText(this.dropdownElement.suggestionList.children[this.selectedIndex].textContent);
-                        break;
+                        if (!data.shiftKey) {
+                            data.preventDefault();
+                            this._addToText(this.dropdownElement.suggestionList.children[this.selectedIndex].textContent);
+                        }
+                        return;
                     default:
                         return;
                 }

@@ -21,27 +21,40 @@ export default class InlineSuggestion extends Plugin {
 
         this.suggestion = null;
 
-        this.editor.model.document.on('change:data', () => {
-            const changes = this.editor.model.document.differ.getChanges();
+        // Trigger suggestions
+        this.editor.model.document.registerPostFixer( writer => {
+            if(this.suggestion) {
+                const changes = this.editor.model.document.differ.getChanges();
 
-            if(this.suggestion){
-                if(changes.length === 1 && changes[0].name === 'NonEditableElement') {
+                if (changes.length === 1 && changes[0].name === 'NonEditableElement') {
                     return;
                 }
-                else if(changes.length === 1 && changes[0].type === 'insert' && changes[0].name === '$text' && changes[0].length === 1){
-                    // Check if the inserted text is a space (and before the suggestion)
-                    const insertedText = changes[0].position.parent._children._nodes[changes[0].position.path[0]]._data[changes[0].position.path[1]];
-                    console.log(insertedText)
 
-                    if(insertedText === ' '){
-                        // If it's a space, don't remove the suggestion
-                        return;
+                // change of selection
+                if(changes.length === 0){
+                    return;
+                }
+
+                for ( const entry of changes ) {
+                    if ( entry.type === 'insert' && entry.name === '$text' ) {
+                        // when creating a new paragraph, entry.position.textNode is empty
+                        let text = null;
+                        if(entry.position.textNode === null && entry.position.nodeAfter !== null){
+                            text =  entry.position.nodeAfter.data[entry.position.offset]
+                        }
+                        else{
+                            text = entry.position.textNode.data[entry.position.offset]
+                        }
+
+                        if(text === ' '){
+                            return;
+                        }
                     }
                 }
                 this._removeExistingSuggestion();
             }
             this._possibleSuggestion.bind(this)();
-        });
+        } );
 
         this.editor.model.document.selection.on('change', () => {
             TextSuggestion.clearTimer();
