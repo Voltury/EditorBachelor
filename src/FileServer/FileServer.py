@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 import websockets
 
+from obswebsocket import exceptions
+
 import suggestionGeneration
 from EyeTracker import EyeTracker
 from obs_script import OBSController
@@ -118,7 +120,7 @@ class FileServer:
 
     def __init__(self, comm_server_uri: str, file_server_port: int, event_loop):
         self.loop = event_loop
-        self.obs_key = "rb395S2vtyhxVs0v"
+        self.obs_key = "CFd0w3bUdQHI3Ctf"
         self.obs_port = 55558
         self.comm_server_uri = comm_server_uri
         self.comm_server: websockets.WebSocketClientProtocol = None
@@ -127,7 +129,7 @@ class FileServer:
         self.web_app_connection: websockets.WebSocketServerProtocol = None
 
         self.eye_tracker = EyeTracker(self.eye_tracker_callback)
-        self.obs = OBSController("localhost", self.obs_port, self.obs_key)
+        self.obs = OBSController("localhost", self.obs_port, self.obs_key, self)
 
         self.data = Data(-1, -1, -1, "", {}, self.eye_tracker.eye_tracker_connected(), False, False, False, False,
                          False)
@@ -144,7 +146,6 @@ class FileServer:
             "event": self.handle_event,
             "study_align_connected": self.set_study_align_connected,
             "set_prototype_logging": self.set_prototype_logging,
-            "set_obs_recording": self.set_obs_recording,
             "get_latest_data": self.get_latest_data,
             "restart_timer": self.restart_timer,
             "studyalign_proceed": self.studyalign_proceed,
@@ -196,7 +197,7 @@ class FileServer:
             await self.web_app_connection.close()
             await self.end_recording()
 
-            if self.data.obs_recording:
+            if self.obs.record_state['outputActive']:
                 await self.toggle_obs_recording()
 
             self.web_app_connection = None
@@ -343,7 +344,7 @@ class FileServer:
         self.data.prototype_logging = logging
         await self.send({"prototype_logging": [logging]}, self.comm_server)
 
-        if logging is True and not self.data.obs_recording:
+        if logging is True and not self.obs.record_state['outputActive']:
             await self.toggle_obs_recording()
 
     async def set_obs_recording(self, recording: bool) -> None:
@@ -364,12 +365,16 @@ class FileServer:
         await self.send({"toggle_prototype_logging": []}, self.web_app_connection)
 
     async def toggle_obs_recording(self) -> None:
+        self.data.obs_recording = self.obs.record_state['outputActive']
+
         if self.data.obs_recording:
-            self.obs.stop_recording(self.data.participant_id, self.data.condition_id)
+            self.obs.stop_recording()
         else:
-            await self.obs.start_recording()
-        self.data.obs_recording = self.obs.is_recording
-        await self.send({"obs_recording": [self.data.obs_recording]}, self.comm_server)
+            self.obs.set_output_path(os.path.join(os.getcwd(),
+                                                  "data",
+                                                  str(self.data.participant_id),
+                                                  str(self.data.condition_id)))
+            self.obs.start_recording()
 
     async def toggle_eye_tracker_recording(self) -> None:
         if self.data.eye_tracker_recording:
@@ -388,7 +393,10 @@ class FileServer:
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    server = FileServer('ws://195.201.205.251:55557', 55556, loop)
+    try:
+        server = FileServer('ws://195.201.205.251:55557', 55556, loop)
+    except exceptions.ConnectionFailure as e:
+        print("OBS websocket connection failed, wrong password? Obs running?")
 
     try:
         asyncio.run_coroutine_threadsafe(server.connect_to_comm_server(), loop)

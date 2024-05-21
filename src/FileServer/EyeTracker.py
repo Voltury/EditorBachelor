@@ -27,7 +27,10 @@ class EyeTracker:
         self.server_queue = queue.Queue()
         self.last_callback = time.perf_counter() * 1000
 
-        print(f"Chosen tracker: {self.eyetracker.device_name} from {[tracker.device_name for tracker in all_trackers]}")
+        if self.eyetracker:
+            print(f"Chosen tracker: {self.eyetracker.device_name} from {[tracker.device_name for tracker in all_trackers]}")
+        else:
+            print("No eye tracker found")
 
     def gaze_data_callback(self, gaze_data):
         """
