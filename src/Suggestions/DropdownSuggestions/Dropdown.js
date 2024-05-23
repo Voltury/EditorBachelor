@@ -145,6 +145,12 @@ export default class DropdownSuggestion extends Plugin {
         this.dropdownElement.addToDocument(rect.left, rect.bottom);
         this.dropdownShow = true;
         this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": suggestions})
+
+        // After the change has been applied, get the view element and log the bounding box.
+        for (const child of this.dropdownElement.suggestionList.children) {
+            const rect = child.getBoundingClientRect();
+            this.editor.fire(Utils.ElementPosition, {"source": "dropdown_suggestion", "bounding_box": rect, "window": window, "suggestion": child.textContent})
+        }
     }
 
     _removeDropdown() {

@@ -101,7 +101,6 @@ export default class InlineSuggestion extends Plugin {
         this.editor.model.change(writer => {
             // Create a new suggestion and insert it.
             this.suggestion = writer.createElement('NonEditableElement', {suggestion: text});
-            //writer.insert(this.suggestion, lastPositionInLastBlock, 1);
             writer.insert(this.suggestion, currentPosition);
 
             // Move the cursor before the inserted element.
@@ -109,6 +108,14 @@ export default class InlineSuggestion extends Plugin {
 
             this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": [text]})
         });
+
+        // After the change has been applied, get the view element and log the bounding box.
+        const viewElement = this.editor.editing.mapper.toViewElement(this.suggestion);
+        const domElement = this.editor.editing.view.domConverter.mapViewToDom(viewElement);
+        if (domElement) {
+            const rect = domElement.getBoundingClientRect();
+            this.editor.fire(Utils.ElementPosition, {"source": "inline_suggestion", "bounding_box": rect, "window": window, "suggestion": text})
+        }
     }
 
     _removeExistingSuggestion() {

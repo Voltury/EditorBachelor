@@ -74,7 +74,7 @@ export default class SidebarSuggestion extends Plugin {
         }
 
         const prompt = [{"role": "system",
-            "content": `You are a smart text generator that helps the user to write a blogpost about the following topic: ${task}. Your task is to always generate exactly one complete sentence.`},
+            "content": `You are a smart text generator that helps the user to write a blogpost about the following topic: ${task}.`},
             {"role": "user", "content": `${Utils._getTextBeforeCursor(this.editor)}.`}]
 
         TextSuggestion.generateSuggestion(
@@ -116,6 +116,12 @@ export default class SidebarSuggestion extends Plugin {
         });
 
         this.editor.fire(Utils.SuggestionsDisplayed, {"suggestions": suggestions});
+
+        // After the change has been applied, get the view element and log the bounding box.
+        for (const child of this.sidebarElement.children) {
+            const rect = child.getBoundingClientRect();
+            this.editor.fire(Utils.ElementPosition, {"source": "sidebar_suggestion", "bounding_box": rect, "window": window, "suggestion": child.textContent})
+        }
     }
 
     _removeSuggestions() {

@@ -21,6 +21,7 @@ export default class Manager extends Plugin {
         this.suggestionInsertedHandler = this.suggestionInsertedHandler.bind(this);
         this.taskSelectedHandler = this.taskSelectedHandler.bind(this);
         this.modalHandler = this.modalHandler.bind(this);
+        this.elementPositionHandler = this.elementPositionHandler.bind(this);
     }
     static get pluginName() {
         return 'Manager';
@@ -40,9 +41,9 @@ export default class Manager extends Plugin {
             // the value for the connection is set to false by default no need to notify the remote control
             console.log("Failed to Evaluate Parameters for study align");
         }
-        this.fileServerConnection.register_study_id(this.study_id ? this.study_id : -1);
-        this.fileServerConnection.register_condition_id(this.conditionId ? this.conditionId : -1);
-        this.fileServerConnection.register_participant_id(this.paricipantId ? this.paricipantId : -1);
+        this.fileServerConnection.register_study_id(this.study_id !== 0 ? this.study_id : -1);
+        this.fileServerConnection.register_condition_id(this.conditionId !== 0 ? this.conditionId : -1);
+        this.fileServerConnection.register_participant_id(this.paricipantId !== 0 ? this.paricipantId : -1);
 
         this.editor.editing.view.document.on('dragstart', ( evt, data ) => {
             evt.stop();
@@ -61,6 +62,7 @@ export default class Manager extends Plugin {
         this.editor.on(Utils.SuggestionInserted, this.suggestionInsertedHandler);
         this.editor.on(Utils.TaskSelected, this.taskSelectedHandler);
         this.editor.on(Utils.ModalChanged, this.modalHandler);
+        this.editor.on(Utils.ElementPosition, this.elementPositionHandler);
 
         this.is_logging = true;
         this.fileServerConnection.set_prototype_logging(true);
@@ -77,6 +79,7 @@ export default class Manager extends Plugin {
         this.editor.off(Utils.SuggestionsDisplayed, this.suggestionsDisplayedHandler);
         this.editor.off(Utils.SuggestionInserted, this.suggestionInsertedHandler);
         this.editor.off(Utils.ModalChanged, this.modalHandler);
+        this.editor.off(Utils.ElementPosition, this.elementPositionHandler)
 
         this.is_logging = false;
         this.fileServerConnection.set_prototype_logging(false);
@@ -87,13 +90,13 @@ export default class Manager extends Plugin {
     handleSal(){
         const url = new URL(window.location.href);
 
-        this.conditionId = url.searchParams.get("condition_id");
+        this.conditionId = Number(url.searchParams.get("condition_id"));
         const loggerKey = url.searchParams.get("logger_key"); // needed for logging
         this.participantToken = url.searchParams.get("participant_token");
-        this.paricipantId = url.searchParams.get("participant_id");
-        this.study_id = url.searchParams.get("study_id");
+        this.paricipantId = Number(url.searchParams.get("participant_id"));
+        this.study_id = Number(url.searchParams.get("study_id"));
 
-        if(!(this.conditionId && loggerKey && this.participantToken && this.paricipantId)){
+        if(!(this.conditionId !== 0 && loggerKey && this.participantToken && this.paricipantId !== 0)){
             throw new Error("Missing parameters for StudyAlign");
         }
 
@@ -229,6 +232,41 @@ export default class Manager extends Plugin {
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.ModalChanged, data, timestamp)
+                .catch(error => {
+                    console.log(error);
+                });
+        }
+    }
+
+    elementPositionHandler(event, data){
+        const currentDate = new Date();
+        const timestamp = currentDate.getTime();
+
+        const window = data.window;
+
+        data.window = {
+            innerHeight: window.innerHeight,
+            innerWidth: window.innerWidth,
+            outerHeight: window.outerHeight,
+            outerWidth: window.outerWidth,
+            pageXOffset: window.pageXOffset,
+            pageYOffset: window.pageYOffset,
+            screen: {
+                availHeight: window.screen.availHeight,
+                availWidth: window.screen.availWidth,
+                height: window.screen.height,
+                width: window.screen.width,
+                availLeft: window.screen.availLeft,
+                availTop: window.screen.availTop,
+                left: window.screen.left,
+                top: window.screen.top
+            }
+        };
+
+        this.fileServerConnection.event(Utils.ElementPosition, data, timestamp);
+
+        if (this.studyAlignConnection) {
+            this.sal.logGenericInteraction(this.conditionId, Utils.ElementPosition, data, timestamp)
                 .catch(error => {
                     console.log(error);
                 });
