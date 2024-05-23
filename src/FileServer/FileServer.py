@@ -239,10 +239,12 @@ class FileServer:
             await receiver.send(json.dumps(message))
 
     async def register_participant_id(self, participant_id: str) -> None:
+        print(f"Registering participant id: {participant_id}")
         self.data.participant_id = int(participant_id)
         await self.send({"participant_id": [self.data.participant_id]}, self.comm_server)
 
     async def register_condition_id(self, condition_id: str) -> None:
+        print(f"Registering condition id: {condition_id}")
         self.data.condition_id = int(condition_id)
         await self.send({"condition_id": [self.data.condition_id]}, self.comm_server)
 
