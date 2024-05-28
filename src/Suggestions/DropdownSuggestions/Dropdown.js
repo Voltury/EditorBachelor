@@ -80,6 +80,7 @@ export default class DropdownSuggestion extends Plugin {
                         this.selectedIndex = (this.selectedIndex + 1) % this.dropdownElement.suggestionList.children.length;
                         break;
                     case keyCodes.enter:
+                        // TODO: This only works when a suggestion is displayed!!!
                         if (!data.shiftKey) {
                             data.preventDefault();
                             this._addToText(this.dropdownElement.suggestionList.children[this.selectedIndex].textContent);

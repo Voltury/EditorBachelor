@@ -22,6 +22,7 @@ export default class Manager extends Plugin {
         this.taskSelectedHandler = this.taskSelectedHandler.bind(this);
         this.modalHandler = this.modalHandler.bind(this);
         this.elementPositionHandler = this.elementPositionHandler.bind(this);
+        this.recordingStatusHandler = this.recordingStatusHandler.bind(this);
     }
     static get pluginName() {
         return 'Manager';
@@ -49,6 +50,8 @@ export default class Manager extends Plugin {
             evt.stop();
             data.preventDefault();
         }, { priority: 'high' });
+
+        this.editor.on(Utils.RecordingStatus, this.recordingStatusHandler);
     }
 
     setup_listeners() {
@@ -67,6 +70,7 @@ export default class Manager extends Plugin {
         this.is_logging = true;
         this.fileServerConnection.set_prototype_logging(true);
         console.log("Listeners setup");
+        this.editor.fire(Utils.RecordingStatus, {status: true})
     }
 
     remove_listeners() {
@@ -84,6 +88,7 @@ export default class Manager extends Plugin {
         this.is_logging = false;
         this.fileServerConnection.set_prototype_logging(false);
         console.log("Listeners removed");
+        this.editor.fire(Utils.RecordingStatus, {status: false})
     }
 
 
@@ -267,6 +272,20 @@ export default class Manager extends Plugin {
 
         if (this.studyAlignConnection) {
             this.sal.logGenericInteraction(this.conditionId, Utils.ElementPosition, data, timestamp)
+                .catch(error => {
+                    console.log(error);
+                });
+        }
+    }
+
+    recordingStatusHandler(event, data){
+        const currentDate = new Date();
+        const timestamp = currentDate.getTime();
+
+        this.fileServerConnection.event(Utils.RecordingStatus, data, timestamp);
+
+        if (this.studyAlignConnection) {
+            this.sal.logGenericInteraction(this.conditionId, Utils.RecordingStatus, data, timestamp)
                 .catch(error => {
                     console.log(error);
                 });

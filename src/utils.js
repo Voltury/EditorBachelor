@@ -5,6 +5,7 @@ export default class Utils {
     static TaskSelected = 'task_selected';
     static ModalChanged = 'modal_changed';
     static ElementPosition = 'element_position';
+    static RecordingStatus = 'recording_status';
 
     static _checkSuggestionAppropriate(editor) {
         // check if document is empty
