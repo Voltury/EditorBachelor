@@ -54,10 +54,10 @@ class EyeTracker:
 
         # Time timestamps used by tobii lack a reference point and are only supposed to be used for synchronisation,
         # so we use the system time to create a reliable timestamp
-        system_time_stamp_micro = int(time.time_ns() // 1e3)
+        system_time_stamp_micro = int(time.time_ns() / 1e3)
         del gaze_data['system_time_stamp']
         del gaze_data['device_time_stamp']
-        gaze_data['system_time_stamp_ms'] = system_time_stamp_micro
+        gaze_data['system_time_stamp_micro'] = system_time_stamp_micro
 
         self.data_list.append(gaze_data)
         if len(self.data_list) == self.max_entries_per_bundle:
