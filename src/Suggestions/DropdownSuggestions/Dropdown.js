@@ -175,6 +175,13 @@ export default class DropdownSuggestion extends Plugin {
     _addToText(suggestion) {
         const selection = this.editor.model.document.selection;
         const range = selection.getFirstPosition();
+
+        // has to be done before the change, else the suggestions will be removed
+        let suggestions = [];
+        for(const child of this.dropdownElement.suggestionList.children) {
+            suggestions.push(child.textContent);
+        }
+
         this.editor.model.change(writer => {
             writer.insertText(suggestion, range);
             // Move the cursor to the end of the inserted text
@@ -182,11 +189,8 @@ export default class DropdownSuggestion extends Plugin {
             writer.setSelection(endPosition);
         });
 
-        let suggestions = [];
-        for(const child of this.dropdownElement.suggestionList.children) {
-            suggestions.push(child.textContent);
-        }
         this.editor.fire(Utils.SuggestionInserted, {"selected": suggestion, "all": suggestions})
+        console.log("Suggestions ", suggestions)
 
         // Set focus back to the text field
         this.editor.editing.view.focus();
