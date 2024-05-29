@@ -96,6 +96,7 @@ class EyeTracker:
         self.eyetracker.unsubscribe_from(tr.EYETRACKER_GAZE_DATA, self.gaze_data_callback)
         if self.data_list:
             self.data_queue.put(self.data_list)
+        self.data_list = []
         self.data_queue.put(None)
         self.server_queue.put(None)
         self.writer_thread.join()
