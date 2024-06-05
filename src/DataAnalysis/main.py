@@ -8,7 +8,7 @@ import seaborn as sns
 import multiprocessing as mp
 
 
-def analyze_condition(args):
+def plot_pupil_dialation(args):
     participant_id, condition_id, poly_degree, raw_data_dir, results_dir = args
     participant_dir = os.path.join(raw_data_dir, participant_id)
     condition_dir = os.path.join(participant_dir, condition_id)
@@ -143,6 +143,7 @@ def create_heatmap(args):
 
 
 if __name__ == '__main__':
+
     # Define the directory containing the raw data
     raw_data_dir = "raw_data"
 
