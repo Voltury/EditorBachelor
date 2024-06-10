@@ -41,6 +41,7 @@ export default class TextSuggestion {
         if (!this.file_server) this.file_server = new FileServerConnection(editor);
 
         this.suggestion_callback = callback;
+        kwargs.n = suggestionCount;
 
         this.timer = setTimeout(() => {
             this.file_server.request_suggestions(prompt, suggestionCount, this.suggestion_response.bind(this), kwargs);
