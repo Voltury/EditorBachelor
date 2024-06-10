@@ -5,17 +5,9 @@ client = OpenAI(api_key='sk-proj-XAvumDNFY8LVfVBmXpiaT3BlbkFJIB9HCxi8iOLwZ0iOPij
 
 
 def suggestion_generation(prompt, suggestion_count, kwargs):
-
-    def get_completion():
-        completion = client.chat.completions.create(**(
+    response = client.chat.completions.create(**(
                 {
                     'model': 'gpt-3.5-turbo-0125',
                     'messages': prompt,
-                } | kwargs)
-                                                    )
-        return completion.choices[0].message.content
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(get_completion) for _ in range(suggestion_count)]
-
-    return [future.result() for future in concurrent.futures.as_completed(futures)]
+                } | kwargs))
+    return [completion.message.content for completion in response.choices]
