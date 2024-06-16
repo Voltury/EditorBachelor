@@ -1,7 +1,7 @@
 from openai import OpenAI
 import concurrent.futures
 
-client = OpenAI(api_key='sk-proj-XAvumDNFY8LVfVBmXpiaT3BlbkFJIB9HCxi8iOLwZ0iOPijX')
+client = OpenAI(api_key='')
 
 
 def suggestion_generation(prompt, suggestion_count, kwargs):
