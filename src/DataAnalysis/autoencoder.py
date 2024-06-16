@@ -154,4 +154,14 @@ def reconstruct_image(model, image_path):
     return output
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+if __name__ == '__main__':
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    autoencoder = Autoencoder().to(device)
+    #train_autoencoder(autoencoder)
+    #exit()
+    autoencoder.load_state_dict(torch.load('autoencoder.pth'))
+
+    # Reconstruct an image
+    reconstructed_image = reconstruct_image(autoencoder, 'results/heatmaps/916_30_heatmap.png')
+    reconstructed_image.show()

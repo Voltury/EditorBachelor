@@ -50,12 +50,14 @@ def plot_pupil_dialation(args):
 
     # Mark the largest gap in the graph
     plt.axvspan(
-        (gaze_data["system_time_stamp_ms"][max_gap_start] - gaze_data["system_time_stamp_ms"][0]) / (1000 * 1000 * 60),
-        (gaze_data["system_time_stamp_ms"][max_gap_end] - gaze_data["system_time_stamp_ms"][0]) / (1000 * 1000 * 60),
+        (gaze_data["system_time_stamp_micro"][max_gap_start] - gaze_data["system_time_stamp_micro"][0]) / (
+                    1000 * 1000 * 60),
+        (gaze_data["system_time_stamp_micro"][max_gap_end] - gaze_data["system_time_stamp_micro"][0]) / (
+                    1000 * 1000 * 60),
         color='red', alpha=0.5)
 
     # Plot of the left pupil diameter over time
-    time = (gaze_data["system_time_stamp_ms"] - gaze_data["system_time_stamp_ms"][0]) / (1000 * 1000 * 60)
+    time = (gaze_data["system_time_stamp_micro"] - gaze_data["system_time_stamp_micro"][0]) / (1000 * 1000 * 60)
     pupil_diameter = gaze_data["left_pupil_diameter"]
 
     # Remove NaN values
@@ -205,10 +207,8 @@ def calculate_duration_since_position_event(generic_interactions, participant_id
 
 
 def generate_heat_map_suggestion(participant_id, condition_id, input_path, output_path, radius=10):
-    name = 'system_time_stamp_ms' if participant_id <= 918 else 'system_time_stamp_micro'
-
     gaze_data = pd.read_csv(os.path.join(input_path, str(participant_id), str(condition_id), 'gaze_data.csv'))
-    start_time = gaze_data[name].iloc[0]
+    start_time = gaze_data['system_time_stamp_micro'].iloc[0]
 
     element_position = calculate_duration_since_position_event(
         pd.read_csv(os.path.join(input_path, 'generic_interactions.csv')),
@@ -276,6 +276,15 @@ def generate_heat_map_suggestion(participant_id, condition_id, input_path, outpu
         output_dir = os.path.join(output_path, str(participant_id), str(condition_id))
         os.makedirs(output_dir, exist_ok=True)
         cv2.imwrite(os.path.join(output_dir, f"frame_{target}.jpg"), blended)
+    return f"{participant_id}_{condition_id}"
+
+
+def generate_all_heat_map_suggestion(participant_ids, condition_ids, input_path, output_path):
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = [executor.submit(generate_heat_map_suggestion, participant_id, condition_id, input_path, output_path)
+                   for participant_id in participant_ids for condition_id in condition_ids]
+        for future in concurrent.futures.as_completed(futures):
+            print(f"Completed heatmap for {future.result()}")
 
 
 def generate_heat_map_total(participant_id, condition_id, input_path, output_path, width=1920, height=1080, radius=10):
@@ -318,6 +327,8 @@ def generate_heat_map_total(participant_id, condition_id, input_path, output_pat
         img = Image.fromarray(heatmap)
         img.save(os.path.join(output_path, 'heatmaps', f'{participant_id}_{condition_id}_heatmap.png'))
 
+    return f"{participant_id}_{condition_id}"
+
 
 def generate_heatmaps_for_participants_and_conditions(participant_ids, condition_ids, input_path, output_path):
     with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -327,7 +338,7 @@ def generate_heatmaps_for_participants_and_conditions(participant_ids, condition
             print(f"Completed heatmap for {future.result()}")
 
 
-def typing_speed_box_plot(keyboard_interactions, output_path):
+def typing_speed_analysis(keyboard_interactions, output_path, generate_box_plots=False):
     # Read the CSV data
     data = pd.read_csv(keyboard_interactions)
     data.dropna(inplace=True)
@@ -349,7 +360,7 @@ def typing_speed_box_plot(keyboard_interactions, output_path):
     # somehow apply didn't work
 
     conditions = sorted(data['condition_id'].unique())
-    typing_speeds = []
+    typing_speeds = {}
     pd.options.mode.chained_assignment = None  # default='warn'
     for condition in conditions:
         condition_data = data[data['condition_id'] == condition]
@@ -360,19 +371,31 @@ def typing_speed_box_plot(keyboard_interactions, output_path):
             num_keystrokes = len(group)
             time_diff = (group['time'].max() - group['time'].min()).total_seconds()
             typing_speed = num_keystrokes / time_diff if time_diff > 0 else 0
-            condition_data.loc[group.index, 'typing_speed'] = typing_speed
 
-        typing_speeds.append(condition_data['typing_speed'].dropna())
+            if condition in typing_speeds:
+                typing_speeds[condition].append(typing_speed)
+            else:
+                typing_speeds[condition] = [typing_speed]
+
     pd.options.mode.chained_assignment = 'warn'
 
-    # Create a single box-whisker plot for the 'typing_speed' column for all conditions
-    plt.figure(figsize=(10, 6))
-    plt.boxplot(typing_speeds, vert=False, labels=conditions)
-    plt.title('Box-Whisker Plot of Typing Speed for All Conditions')
-    plt.xlabel('Typing Speed (keystrokes/second)')
+    if generate_box_plots:
+        plt.figure(figsize=(10, 6))
+        # Sort the dictionary by keys (condition_id)
+        sorted_typing_speeds = dict(sorted(typing_speeds.items()))
+        for condition_id, speeds in sorted_typing_speeds.items():
+            plt.boxplot(speeds, vert=False, positions=[condition_id], widths=0.6)
+        plt.title('Box-Whisker Plot of Typing Speeds for All Conditions')
+        plt.xlabel('Typing Speed (keystrokes per second)')
+        plt.yticks(list(sorted_typing_speeds.keys()), list(sorted_typing_speeds.keys()))
+        os.makedirs(output_path, exist_ok=True)
+        plt.savefig(os.path.join(output_path, 'box_plot_typing_speed_all_conditions.png'), format='png')
 
-    os.makedirs(output_path, exist_ok=True)
-    plt.savefig(os.path.join(output_path, f'box_plot_typing_speed.png'), format='png')
+    mean = {condition_id: np.mean(speeds) for condition_id, speeds in typing_speeds.items()}
+    median = {condition_id: np.median(speeds) for condition_id, speeds in typing_speeds.items()}
+    std = {condition_id: np.std(speeds) for condition_id, speeds in typing_speeds.items()}
+    print(f"Mean: {mean}\nMedian: {median}\nStandard Deviation: {std}")
+    print(typing_speeds)
 
 
 def find_suggestions_in_text(full_text, suggestions):
@@ -524,6 +547,13 @@ def calculate_ai_part(generic_interactions, input_path, output_path, generate_te
         os.makedirs(output_path, exist_ok=True)
         plt.savefig(os.path.join(output_path, 'box_plot_ai_text_percentage_all_conditions.png'), format='png')
 
+    mean = {condition_id: np.mean(text_percentages) for condition_id, text_percentages in ai_text_percentages.items()}
+    median = {condition_id: np.median(text_percentages) for condition_id, text_percentages in ai_text_percentages.items()}
+    std = {condition_id: np.std(text_percentages) for condition_id, text_percentages in ai_text_percentages.items()}
+    print(f"Mean: {mean}\nMedian: {median}\nStandard Deviation: {std}")
+
+    print(ai_text_percentages)
+
     return ai_text_percentages
 
 
@@ -565,13 +595,12 @@ def spelling_error_rate(input_path, output_path, generate_box_plots=False):
 
     mean = {condition_id: np.mean(rates) for condition_id, rates in error_rates.items()}
     median = {condition_id: np.median(rates) for condition_id, rates in error_rates.items()}
-    var = {condition_id: np.var(rates) for condition_id, rates in error_rates.items()}
-    print(f"Mean: {mean}\nMedian: {median}\nVariance: {var}")
-
+    std = {condition_id: np.std(rates) for condition_id, rates in error_rates.items()}
+    print(f"Mean: {mean}\nMedian: {median}\nStandard Deviation: {std}")
     return error_rates
 
 
-def calculate_idle_time(input_path, output_path, generate_box_plots=False, idle_threshold=2.0):
+def calculate_idle_time(input_path, output_path, generate_box_plots=False, lower_threshold=2.0, upper_threshold=30.0):
     df = pd.read_csv(os.path.join(input_path, 'keyboard_interactions.csv'))
     participant_ids = df['participant_id'].unique()
     condition_ids = df['condition_id'].unique()
@@ -591,7 +620,7 @@ def calculate_idle_time(input_path, output_path, generate_box_plots=False, idle_
             idle_time = (condition_data['time'].shift(-1) - condition_data['time']).dt.total_seconds()
             idle_time = idle_time.dropna()
             # Apply thresholding
-            idle_time = idle_time[idle_time > idle_threshold]
+            idle_time = idle_time[(lower_threshold < idle_time) & (idle_time < upper_threshold)]
             if condition_id in idle_times:
                 idle_times[condition_id].extend(idle_time.tolist())
             else:
@@ -648,7 +677,8 @@ def calculate_duration_since_display(generic_interactions, participant_id, condi
     return suggestions_displayed
 
 
-def time_to_first_fixation_and_duration(input_path, output_path, generate_box_plots=False, max_time_ms=5000):
+def time_to_first_fixation_and_duration(input_path, output_path, generate_box_plots=False, max_time_first_fixation=5000,
+                                        max_fixation_duration=20000):
     generics = pd.read_csv(os.path.join(input_path, 'generic_interactions.csv'))
     participant_ids = generics['participant_id'].unique()
     condition_ids = generics['condition_id'].unique()
@@ -688,7 +718,8 @@ def time_to_first_fixation_and_duration(input_path, output_path, generate_box_pl
                     ]
 
                 # Differences over the max_time_ms are considered outliers
-                if len(points_inside) > 0 and (points_inside['system_time_stamp_micro'].min() - start)/1000 < max_time_ms:
+                if len(points_inside) > 0 and (
+                        points_inside['system_time_stamp_micro'].min() - start) / 1000 < max_time_first_fixation:
                     if condition in first_fixations:
                         first_fixations[condition].append(
                             (points_inside['system_time_stamp_micro'].min() - start) / 1000)
@@ -698,10 +729,13 @@ def time_to_first_fixation_and_duration(input_path, output_path, generate_box_pl
                     # avg_period = row['time_diff'] / len(eye_tracking_relevant)
                     avg_period = 4000
 
+                    if avg_period * len(eye_tracking_relevant) / 1000 > max_fixation_duration:
+                        continue
+
                     if condition in fixation_duration:
-                        fixation_duration[condition].append(avg_period * len(eye_tracking_relevant))
+                        fixation_duration[condition].append(avg_period * len(eye_tracking_relevant) / 1000000)
                     else:
-                        fixation_duration[condition] = [avg_period * len(eye_tracking_relevant)]
+                        fixation_duration[condition] = [avg_period * len(eye_tracking_relevant) / 1000000]
 
     if generate_box_plots:
         plt.figure(figsize=(10, 6))
@@ -720,23 +754,63 @@ def time_to_first_fixation_and_duration(input_path, output_path, generate_box_pl
         for condition_id, durations in sorted_fixation_duration.items():
             plt.boxplot(durations, vert=False, positions=[condition_id], widths=0.6)
         plt.title('Box-Whisker Plot of Fixation Duration for All Conditions')
-        plt.xlabel('Fixation Duration (ms)')
+        plt.xlabel('Fixation Duration (seconds)')
         plt.yticks(list(sorted_fixation_duration.keys()), list(sorted_fixation_duration.keys()))
         os.makedirs(output_path, exist_ok=True)
         plt.savefig(os.path.join(output_path, 'box_plot_fixation_duration_all_conditions.png'), format='png')
 
     mean_first_fixations = {condition_id: np.mean(times) for condition_id, times in first_fixations.items()}
     median_first_fixations = {condition_id: np.median(times) for condition_id, times in first_fixations.items()}
-    standard_deviation_first_fixations = {condition_id: np.std(times) for condition_id, times in first_fixations.items()}
-    print(f"Mean Time to First Fixation: {mean_first_fixations}\nMedian Time to First Fixation: {median_first_fixations}\n"
-          f"Standard Deviation Time to First Fixation: {standard_deviation_first_fixations}")
+    standard_deviation_first_fixations = {condition_id: np.std(times) for condition_id, times in
+                                          first_fixations.items()}
+    print(
+        f"Mean Time to First Fixation: {mean_first_fixations}\nMedian Time to First Fixation: {median_first_fixations}\n"
+        f"Standard Deviation Time to First Fixation: {standard_deviation_first_fixations}")
 
     mean_fixation_duration = {condition_id: np.mean(durations) for condition_id, durations in fixation_duration.items()}
-    median_fixation_duration = {condition_id: np.median(durations) for condition_id, durations in fixation_duration.items()}
-    standard_deviation_fixation_duration = {condition_id: np.std(durations) for condition_id, durations in fixation_duration.items()}
+    median_fixation_duration = {condition_id: np.median(durations) for condition_id, durations in
+                                fixation_duration.items()}
+    standard_deviation_fixation_duration = {condition_id: np.std(durations) for condition_id, durations in
+                                            fixation_duration.items()}
     print(f"Mean Fixation Duration: {mean_fixation_duration}\nMedian Fixation Duration: {median_fixation_duration}\n"
           f"Standard Deviation Fixation Duration: {standard_deviation_fixation_duration}")
 
 
+def calcualte_text_lengts(participant_ids, condition_ids, input_path, output_path, generate_box_plots=False):
+    lengths = {}
+    for p in participant_ids:
+        for c in condition_ids:
+            if not os.path.exists(f'{input_path}/{p}/{c}/document.html'):
+                print(f'Participant {p}, Condition {c}: No document found')
+                continue
+
+            with open(f'raw_data/{p}/{c}/document.html', 'r') as f:
+                text = BeautifulSoup(f.read(), 'html.parser').text
+                text = text.replace('\n', ' ')
+            if c in lengths:
+                lengths[c].append(len(text))
+            else:
+                lengths[c] = [len(text)]
+
+    if generate_box_plots:
+        plt.figure(figsize=(10, 6))
+        sorted_lengths = dict(sorted(lengths.items()))
+        for condition_id, text_lengths in sorted_lengths.items():
+            plt.boxplot(text_lengths, vert=False, positions=[condition_id], widths=0.6)
+        plt.title('Box-Whisker Plot of Text Lengths for All Conditions')
+        plt.xlabel('Text Length')
+        plt.yticks(list(sorted_lengths.keys()), list(sorted_lengths.keys()))
+        os.makedirs(output_path, exist_ok=True)
+        plt.savefig(f'{output_path}/box_plot_text_lengths_all_conditions.png', format='png')
+
+    mean = {condition_id: np.mean(lengths) for condition_id, lengths in lengths.items()}
+    median = {condition_id: np.median(lengths) for condition_id, lengths in lengths.items()}
+    std = {condition_id: np.std(lengths) for condition_id, lengths in lengths.items()}
+
+    print(f"Mean: {mean}\nMedian: {median}\nStandard Deviation: {std}")
+
+
 if __name__ == '__main__':
+    participants = [912, 913, 914, 915, 916, 917, 918, 919, 920, 921]
+    conditions = [29, 30, 31, 32]
     time_to_first_fixation_and_duration('raw_data', 'results', generate_box_plots=True)

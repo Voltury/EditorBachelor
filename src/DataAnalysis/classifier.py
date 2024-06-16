@@ -8,6 +8,7 @@ from torchvision import transforms
 from PIL import Image
 import time
 from autoencoder import Autoencoder
+from sklearn.metrics import confusion_matrix as sk_confusion_matrix
 
 
 class HeatmapDataset(Dataset):
@@ -112,33 +113,38 @@ def train_classifier(model, n_epochs=100):
     plt.show()
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(device)
+if __name__ == '__main__':
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
 
-autoencoder = Autoencoder()
-autoencoder.load_state_dict(torch.load('autoencoder.pth'))
+    autoencoder = Autoencoder()
+    autoencoder.load_state_dict(torch.load('autoencoder.pth'))
 
-model = Classifier(autoencoder.encoder.to(device)).to(device)
-#train_classifier(model)
-#exit()
-model.load_state_dict(torch.load('classifier_epoch_100.pth'))
+    model = Classifier(autoencoder.encoder.to(device)).to(device)
+    #train_classifier(model)
+    #exit()
+    model.load_state_dict(torch.load('classifier_epoch_100.pth'))
 
-with torch.no_grad():
-    model.eval()
-    # Initialize a 4x4 matrix with zeros
-    confusion_matrix = torch.zeros(4, 4)
-    for participant in range(912, 921):
-        for condition in range(29, 33):
-            image_path = f'results/heatmaps/{participant}_{condition}_heatmap.png'
-            image = Image.open(image_path).convert('L')
-            image = transform(image).unsqueeze(0).to(device)
-            output = model(image)
-            print(f"Participant {participant}, Condition {condition}, prediction: {torch.argmax(output).item() + 29}, probabilities: {output}")
-            # Update the confusion matrix
-            confusion_matrix[condition-29, torch.argmax(output).item()] += 1
-    # Print the confusion matrix
-    print(f"Confusion Matrix: \n{confusion_matrix}")
-    # Calculate accuracy for each condition
-    for i in range(4):
-        print(f"Accuracy for condition {i+29}: {confusion_matrix[i,i]/confusion_matrix[i].sum()}")
-
+    with torch.no_grad():
+        model.eval()
+        # Initialize lists to store true and predicted labels
+        y_true = []
+        y_pred = []
+        for participant in range(912, 922):
+            for condition in range(29, 33):
+                image_path = f'results/heatmaps/{participant}_{condition}_heatmap.png'
+                image = Image.open(image_path).convert('L')
+                image = transform(image).unsqueeze(0).to(device)
+                output = model(image)
+                print(
+                    f"Participant {participant}, Condition {condition}, prediction: {torch.argmax(output).item() + 29}, probabilities: {output}")
+                # Store the true and predicted labels
+                y_true.append(condition)
+                y_pred.append(torch.argmax(output).item() + 29)
+        # Compute the confusion matrix using sklearn
+        confusion_matrix = sk_confusion_matrix(y_true, y_pred, labels=[29, 30, 31, 32])
+        # Print the confusion matrix
+        print(f"Confusion Matrix: \n{confusion_matrix}")
+        # Calculate accuracy for each condition
+        for i in range(4):
+            print(f"Accuracy for condition {i + 29}: {confusion_matrix[i, i] / confusion_matrix[i].sum()}")
